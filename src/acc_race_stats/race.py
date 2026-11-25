@@ -102,8 +102,8 @@ class Race:
         data = session.data
         self.kind, self.when, self.source = session.kind, session.when, session.name
         self.track = track_name(session.track)
-        self.league, self.event = league, event or str(data.get("serverName") or "").strip()
-        self.title = " · ".join(part for part in (league, self.event, self.track) if part)
+        self.league, self.event = league.strip(), event.strip()
+        self.title = " · ".join(part for part in (self.league, self.event, self.track) if part)
         self.warnings: list[str] = []
         self.drivers: list[Driver] = []
         is_race = session.kind == "R"

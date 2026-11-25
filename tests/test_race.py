@@ -119,9 +119,8 @@ def test_every_session_is_drawn(tmp_path, weekend):
         mode = apply_colors(model)
         out = tmp_path / session.kind
         out.mkdir()
-        assert len(write(model, out, translator(lang), lang, mode)) == expected[session.kind]
-    page = (tmp_path / "R" / "report.html").read_text("utf-8")
-    assert "<b>$a" not in page and "&lt;b&gt;$a" in page
+        assert len(write(model, out, translator(lang), mode)) == expected[session.kind]
+    assert "<b>$a_1$ & 100%" in (tmp_path / "R" / "summary.txt").read_text("utf-8")
 
 
 def test_translations_have_the_same_fields():
@@ -129,3 +128,8 @@ def test_translations_have_the_same_fields():
 
     for pt, en in TEXT.values():
         assert sorted(re.findall(r"{\w+}", pt)) == sorted(re.findall(r"{\w+}", en))
+
+
+def test_server_name_is_not_used_in_titles(weekend):
+    assert Race(weekend[2]).title == "Monza"
+    assert Race(weekend[2], league="My League", event="Round 3").title == "My League · Round 3 · Monza"

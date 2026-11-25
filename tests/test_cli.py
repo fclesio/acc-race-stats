@@ -78,8 +78,10 @@ def ftp():
 
 @pytest.fixture
 def fast(monkeypatch):
-    def write(race, out, t, lang, mode):
-        (out / "race.json").write_text(json.dumps({"grid": [d.grid for d in race.drivers], "lang": lang}))
+    def write(race, out, t, mode):
+        (out / "race.json").write_text(
+            json.dumps({"grid": [d.grid for d in race.drivers], "league": race.league, "text": t("R")})
+        )
         return []
 
     monkeypatch.setattr(cli, "write", write)
@@ -87,7 +89,9 @@ def fast(monkeypatch):
 
 
 def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
-    answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "nowhere", "monza", "14/03/2026", "4"])
+    answers = iter(
+        ["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "nowhere", "monza", "14/03/2026", "4", "My League"]
+    )
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
     monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
@@ -96,7 +100,7 @@ def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
     assert "user or password is wrong" in text and "secret" not in text
     assert sorted(p.name.rsplit("-", 1)[1] for p in tmp_path.iterdir()) == ["practice", "qualifying", "race"]
     race = json.loads((tmp_path / "2026-03-15-2140-monza-race" / "race.json").read_text())
-    assert all(race["grid"]) and race["lang"] == "pt-br"
+    assert all(race["grid"]) and race["league"] == "My League" and race["text"] == "Corrida"
 
 
 def test_direct_ftp(ftp, fast, tmp_path, monkeypatch):
@@ -148,3 +152,16 @@ def test_friendly_errors(tmp_path):
     bad.write_text("{}")
     with pytest.raises(SystemExit, match="Error"):
         cli.main([str(bad)])
+
+
+def test_guided_flow_with_a_folder(fast, tmp_path, monkeypatch):
+    source = tmp_path / "my results"
+    source.mkdir()
+    for session in demo.weekend():
+        (source / session.name).write_text(json.dumps(session.data), "utf-16-le")
+    answers = iter([f'"{source}"', "", "", "1", ""])
+    monkeypatch.setattr("builtins.input", lambda question: next(answers))
+    out = tmp_path / "out"
+    cli.main(["--output", str(out)])
+    race = json.loads((out / "2026-03-15-2140-monza-race" / "race.json").read_text())
+    assert all(race["grid"]) and race["league"] == ""

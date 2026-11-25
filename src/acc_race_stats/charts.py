@@ -21,6 +21,7 @@ from .race import Driver, Race  # noqa: E402
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 BG, CARD, LINE, TEXT, MUTED = "#0a0b0d", "#121418", "#262a31", "#f4f5f7", "#8b929c"
+ACCENT = "#f5c542"
 GREEN, RED, PURPLE = "#3ddc84", "#ff5d5d", "#c77dff"
 STINT_COLORS = ["#3a7bd5", "#7ed321", "#ff8a1f", "#c77dff"]
 MONO = ["Menlo", "Consolas", "DejaVu Sans Mono"]
@@ -62,8 +63,18 @@ class Charts:
         fig.subplots_adjust(top=1 - 1.75 / height, bottom=0.95 / height)
         fig.text(0.035, 1 - 0.4 / height, title, fontsize=24, fontweight="bold", va="top")
         kind = "" if self.race.kind == "R" else self.t(self.race.kind) + "  ·  "
-        fig.text(0.035, 1 - 0.95 / height, f"{self.race.title}  ·  {kind}{sub}", fontsize=13, color=MUTED, va="top")
-        fig.text(0.965, 1 - 0.4 / height, self.race.league.upper(), fontsize=11, color="#7ed321", va="top", ha="right")
+        fig.text(
+            0.035,
+            1 - 0.95 / height,
+            " · ".join(x for x in (self.race.event, self.race.track) if x) + f"  ·  {kind}{sub}",
+            fontsize=13,
+            color=MUTED,
+            va="top",
+        )
+        if self.race.league:
+            league = short(self.race.league).upper()
+            style: Any = {"fontsize": 20, "fontweight": "bold", "color": ACCENT, "va": "top", "ha": "right"}
+            fig.text(0.965, 1 - 0.4 / height, league, **style)
         fig.text(0.965, 0.15 / height, self.t("source"), fontsize=9, color="#4a5059", ha="right")
         return fig, axes
 

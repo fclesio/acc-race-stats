@@ -1,9 +1,7 @@
-"""Written output: chat summary, race.json and a single-file HTML page."""
+"""Written output: charts, chat summary and race.json."""
 
 from __future__ import annotations
 
-import base64
-import html
 import json
 from pathlib import Path
 
@@ -51,36 +49,8 @@ def summary(race: Race, t: Translate, mode: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-PAGE = """<!doctype html>
-<html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>{title}</title><style>
-body{{margin:0;background:#0a0b0d;color:#f4f5f7;font:16px/1.5 system-ui,sans-serif}}
-main{{max-width:1200px;margin:auto;padding:32px 16px}}h1{{margin:0}}h2{{color:#8b929c;font-size:18px}}
-pre{{background:#121418;padding:16px;border-radius:8px;white-space:pre-wrap;font:inherit}}
-img{{width:100%;margin:0 0 24px;border-radius:8px}}li{{color:#f5c542}}
-</style></head><body><main><h1>{title}</h1><h2>{kind}{date}</h2>{notes}
-<h2>{summary_title}</h2><pre>{summary}</pre>{images}</main></body></html>
-"""
-
-
-def page(race: Race, t: Translate, lang: str, text: str, images: list[Path]) -> str:
-    notes = ""
-    if race.warnings:
-        items = "".join(f"<li>{html.escape(w)}</li>" for w in race.warnings)
-        notes = f"<h2>{t('notes')}</h2><ul>{items}</ul>"
-    pictures = "".join(
-        f'<img alt="{html.escape(p.stem)}" src="data:image/png;base64,{base64.b64encode(p.read_bytes()).decode()}">'
-        for p in images
-    )
-    return PAGE.format(
-        lang="en" if lang == "en" else "pt-BR", title=html.escape(race.title), kind=t(race.kind),
-        date=f" · {race.when:%Y-%m-%d %H:%M}" if race.when else "", notes=notes, summary_title=t("summary"),
-        summary=html.escape(text), images=pictures,
-    )  # fmt: skip
-
-
-def write(race: Race, out: Path, t: Translate, lang: str, mode: str) -> list[Path]:
-    """Writes charts/, report.html, race.json and summary.txt."""
+def write(race: Race, out: Path, t: Translate, mode: str) -> list[Path]:
+    """Writes charts/, race.json and summary.txt."""
     charts = out / "charts"
     if charts.exists():  # charts of an earlier run in the same folder
         for old in charts.glob("[0-9][0-9]-*.png"):
@@ -90,5 +60,4 @@ def write(race: Race, out: Path, t: Translate, lang: str, mode: str) -> list[Pat
     (out / "summary.txt").write_text(text, encoding="utf-8")
     data = json.dumps(race.to_dict(), ensure_ascii=False, indent=1)
     (out / "race.json").write_text(data, encoding="utf-8")
-    (out / "report.html").write_text(page(race, t, lang, text, images), encoding="utf-8")
     return images

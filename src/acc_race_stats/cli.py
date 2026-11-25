@@ -107,12 +107,25 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
         print(f"  Type a number from 1 to {len(options)}")
 
 
-def ask_connection() -> Server:
+def ask_connection() -> Server | list[Session]:
+    """A connected server, or the sessions of a local folder typed instead of the address."""
     print("\n1. Connection (from your game server panel, for example G-Portal)")
     address: Address | None = None
     while True:
         if address is None:
-            address = ask_until("FTP address (IP, IP:port or ftp://...)", parse_address)
+            answer = ask("FTP address (IP, IP:port, or drag a results folder here)")
+            local = Path(answer.strip("\"'").replace("\\ ", " ") if os.name != "nt" else answer.strip('"')).expanduser()
+            if answer and local.exists():
+                try:
+                    return load_path(local)
+                except ResultError as error:
+                    print(f"  {error}")
+                    continue
+            try:
+                address = parse_address(answer)
+            except ServerError as error:
+                print(f"  {error}")
+                continue
             if address.port == 21:
                 address.port = ask_until("FTP port", _port, "21")
         address.user = address.user or ask("FTP user")
@@ -157,6 +170,18 @@ def same_weekend(anchor: Session, sessions: list[Session]) -> list[Session]:
                 continue
             found[s.kind] = s
     return [found[k] for k in ("FP", "Q", "R") if k in found]
+
+
+def filter_sessions(sessions: list[Session], day: date | None, track: str | None, kinds: set[str]) -> list[Session]:
+    """Local sessions; a renamed file has no date and passes the date filter."""
+    return [
+        s
+        for s in sessions
+        if useful(s)
+        and s.kind in kinds
+        and track in (None, s.track)
+        and (day is None or s.when is None or abs((s.when.date() - day).days) <= 3)
+    ]
 
 
 def search_server(server: Server, day: date | None, track: str | None, kinds: set[str]) -> list[Session]:
@@ -217,7 +242,7 @@ def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace
         out = a.output / re.sub(r"[^A-Za-z0-9_-]", "-", f"{stamp}-{session.track}-{LABEL[session.kind]}")
         out.mkdir(parents=True, exist_ok=True)
         print(f"Drawing {LABEL[session.kind]} at {race.track}...")
-        images = write(race, out, t, a.lang, mode)
+        images = write(race, out, t, mode)
         print(f"  {len(images)} charts (colors by {mode}) in {out}")
         if session.kind == "R" and not any(d.grid for d in race.drivers):
             print("  No starting grid: qualifying file not found (or use --grid grid.csv)")
@@ -242,22 +267,29 @@ def open_folder(path: Path) -> None:
 # ---------------------------------------------------------------- entry points
 def guided(a: argparse.Namespace) -> list[Path]:
     print("ACC Race Stats\n" + "=" * 14)
-    server = ask_connection()
+    source = ask_connection()
     try:
-        server.find_results()
+        if isinstance(source, Server):
+            source.find_results()
         while True:
             print("\n2. What do you want to see?")
             track = ask_until("Track (empty = any)", parse_track)
-            day = ask_until("Approximate date, like 24/11 (empty = most recent)", parse_day)
+            day = ask_until("Approximate date, like 24/11 (empty = any)", parse_day)
             what = list(KINDS)[choose("Session", ["Race", "Free practice", "Qualifying", "All of them"])]
-            found = search_server(server, day, track, KINDS[what])
+            if isinstance(source, Server):
+                found = search_server(source, day, track, KINDS[what])
+            else:
+                found = filter_sessions(source, day, track, KINDS[what])
             if found:
                 break
             print("  Nothing found within 3 days of that date on that track. Try again with fewer filters.")
         anchor = pick(found, what)
-        pool = with_companions(server, anchor)
+        pool = with_companions(source, anchor) if isinstance(source, Server) else source
     finally:
-        server.close()
+        if isinstance(source, Server):
+            source.close()
+    print("\n3. Titles")
+    a.league = a.league or ask("League name to highlight (empty = none)")
     return generate(same_weekend(anchor, pool) if what == "all" else [anchor], pool, a)
 
 
@@ -286,11 +318,7 @@ def direct(a: argparse.Namespace) -> list[Path]:
             server.close()
     else:
         pool = demo.weekend(single_class=a.color_by == "driver") if a.demo else load_path(a.path)
-        found = [
-            s for s in pool
-            if useful(s) and s.kind in KINDS[a.session] and track in (None, s.track)
-            and (day is None or s.when is None or abs((s.when.date() - day).days) <= 3)
-        ]  # fmt: skip
+        found = filter_sessions(pool, day, track, KINDS[a.session])
         if a.list:
             print("\n".join(describe(s) for s in found) or "Nothing found.")
             return []
@@ -322,8 +350,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--grid", type=Path, help="CSV with the columns position,driver (when there is no qualifying file)")
     p.add_argument("--class-map", nargs="+", default=[], metavar="FROM=TO", help="rename classes: SILVER=PRO-AM")
     p.add_argument("--class-color", nargs="+", default=[], metavar="CLASS=#RRGGBB", help="change class colors")
-    p.add_argument("--league", default="", help="league name in the titles")
-    p.add_argument("--event", default="", help="event name in the titles (default: server name)")
+    p.add_argument("--league", default="", help="league name, highlighted on every chart")
+    p.add_argument("--event", default="", help="event name in the titles")
     p.add_argument("--output", type=Path, default=Path("reports"), help="output folder (default: reports)")
     p.add_argument("--no-open", action="store_true", help="do not open the folder at the end")
     p.add_argument("--version", action="version", version=__version__)

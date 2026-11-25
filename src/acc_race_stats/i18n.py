@@ -106,7 +106,6 @@ TEXT: dict[str, tuple[str, str]] = {
         "clean laps · box = middle half · line = median",
     ),
     "laps_done": ("Voltas completadas", "Laps completed"),
-    "winner": ("Vencedor", "Winner"),
     "fastest": ("Volta mais rápida", "Fastest lap"),
     "pole": ("Pole", "Pole"),
     "best_pace": ("Melhor ritmo", "Best pace"),
@@ -115,8 +114,6 @@ TEXT: dict[str, tuple[str, str]] = {
     "battle": ("Disputa da corrida", "Battle of the race"),
     "class_winners": ("Vencedores por classe", "Class winners"),
     "penalties": ("Punições do jogo", "In-game penalties"),
-    "notes": ("Avisos sobre os dados", "Notes about the data"),
-    "summary": ("Resumo para copiar", "Summary to copy"),
 }
 
 

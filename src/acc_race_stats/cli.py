@@ -326,7 +326,23 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
         a.color_by = "class"
 
 
+def repair_terminal() -> None:
+    """An interrupted program can leave a terminal where Enter does not end the line or typing is invisible."""
+    if sys.platform == "win32" or not sys.stdin.isatty():
+        return
+    import termios
+
+    try:
+        mode = termios.tcgetattr(sys.stdin)
+        mode[0] = (mode[0] | termios.ICRNL) & ~(termios.INLCR | termios.IGNCR)
+        mode[3] |= termios.ICANON | termios.ECHO | termios.ISIG
+        termios.tcsetattr(sys.stdin, termios.TCSANOW, mode)
+    except termios.error:
+        pass
+
+
 def guided(a: argparse.Namespace) -> list[Path]:
+    repair_terminal()
     print("ACC Race Stats\n" + "=" * 14)
     server = ask_connection()
     try:

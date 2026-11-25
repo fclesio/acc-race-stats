@@ -51,11 +51,6 @@ Which ones?
 
 4. Charts
 League name to highlight (empty = none): My League
-
-Language of the charts
-  1  English
-  2  Português (Brasil)
-Number (press Enter for 1):
 ```
 
 Results go to `reports/`: `charts/`, `summary.txt` and `race.json`.
@@ -64,7 +59,7 @@ Try it without a server: `make demo`
 
 ## Options
 
-`make en` and `make pt-br` set the chart language without asking; `make` asks (Enter = English).
+`make en` and `make pt-br` set the language of the questions and charts; `make` asks it first (Enter = English).
 
 Other options on Windows: `make --lang pt-br`. On macOS and Linux: `make ARGS="--lang pt-br"`.
 
@@ -75,7 +70,7 @@ Other options on Windows: `make --lang pt-br`. On macOS and Linux: `make ARGS="-
 | `--track` `--date` `--session race\|practice\|qualifying\|all` | which session; the date matches 3 days either way |
 | `--min-cars N` | hide events with fewer cars in the questions (default 2) |
 | `--list` | only list the sessions found |
-| `--lang en\|pt-br` | chart language (default `en`) |
+| `--lang en\|pt-br` | language of the questions and charts (default `en`) |
 | `--divisions none\|game\|pro\|metal\|fia\|numbers` | league categories; `none` is one color per driver |
 | `--color-by auto\|class\|driver` | `auto` uses classes when the race has more than one |
 | `--class-map SILVER=PRO-AM` | rename the game classes |

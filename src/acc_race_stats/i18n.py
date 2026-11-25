@@ -119,10 +119,19 @@ TEXT: dict[str, tuple[str, str]] = {
 }
 
 
+CLASSES_PT = {
+    "GOLD": "OURO", "SILVER": "PRATA", "BRONZE": "BRONZE", "PLATINUM": "PLATINA", "NATIONAL": "NACIONAL",
+    "DIVISION 1": "DIVISÃO 1", "DIVISION 2": "DIVISÃO 2", "DIVISION 3": "DIVISÃO 3", "DIVISION 4": "DIVISÃO 4",
+}  # fmt: skip
+
+
 def translator(lang: str) -> Translate:
     index = 0 if lang == "pt-br" else 1
 
     def translate(key: str, **values: object) -> str:
+        if key == "class_name":
+            name = str(values["name"])
+            return CLASSES_PT.get(name, name) if index == 0 else name
         return TEXT[key][index].format(**values)
 
     return translate

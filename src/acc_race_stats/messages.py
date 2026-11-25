@@ -1,0 +1,102 @@
+"""Text of the questions and errors: English in the code, Brazilian Portuguese here."""
+
+from __future__ import annotations
+
+_language = "en"
+
+
+def set_language(language: str) -> None:
+    global _language
+    _language = language
+
+
+def tr(text: str, /, **values: object) -> str:
+    """The text in the chosen language, with its {fields} filled in."""
+    return (PORTUGUESE[text] if _language == "pt-br" else text).format(**values)
+
+
+PORTUGUESE = {
+    "Track {text} not found or ambiguous. Options: {hint}": "Pista {text} não encontrada ou ambígua. Opções: {hint}",
+    "Date {text} not understood. Use day/month, like 24/11, or 2026-11-24": "Não entendi a data {text}. Use dia/mês, como 24/11, ou 2026-11-24",
+    "{item} must look like NAME=VALUE": "{item} deve ser no formato NOME=VALOR",
+    " (press Enter for {default})": " (aperte Enter para {default})",
+    "FTP password: ": "Senha do FTP: ",
+    "Number": "Número",
+    "  Type a number from 1 to {last}": "  Digite um número de 1 a {last}",
+    "\n1. Connection (copy it from your game server panel, for example G-Portal)": "\n1. Conexão (copie do painel do seu servidor, por exemplo o G-Portal)",
+    "{server}, user {user}": "{server}, usuário {user}",
+    "The same as last time ({same})": "O mesmo da última vez ({same})",
+    "Which server?": "Qual servidor?",
+    "Another one": "Outro",
+    "FTP address (IP, or IP:port)": "Endereço do FTP (IP ou IP:porta)",
+    "FTP port": "Porta do FTP",
+    "FTP user": "Usuário do FTP",
+    "Connecting...": "Conectando...",
+    "What now?": "E agora?",
+    "Try again": "Tentar de novo",
+    "Type another address": "Digitar outro endereço",
+    "Connected.": "Conectado.",
+    "The port is a number, like 21 or 31921": "A porta é um número, como 21 ou 8821",
+    "Reading {count} file(s)...": "Lendo {count} arquivo(s)...",
+    "Skipped {name}: {error}": "Pulei {name}: {error}",
+    "Color {color} must look like #1c69d4": "A cor {color} deve ser no formato #1c69d4",
+    "Drawing charts: {what}, {track}...": "Desenhando os gráficos: {what}, {track}...",
+    "  {count} charts in {folder}": "  {count} gráficos em {folder}",
+    "  No starting grid: qualifying file not found (or use --grid grid.csv)": "  Sem grid de largada: não achei o arquivo da classificação (ou use --grid grid.csv)",
+    "  Note: {warning}": "  Aviso: {warning}",
+    "Nothing to draw in the chosen session.": "Nada para desenhar na sessão escolhida.",
+    "No session with enough cars was found. Use --min-cars 1 to see solo sessions.": "Nenhuma sessão com carros suficientes. Use --min-cars 1 para ver sessões de um carro só.",
+    "  There are no older sessions.": "  Não há sessões mais antigas.",
+    "Type the number": "Digite o número",
+    "All of them": "Todas",
+    "What do you want to see?": "O que você quer ver?",
+    "Categories saved in the file: ": "Categorias salvas no arquivo: ",
+    "Does your league use categories?": "Sua liga usa categorias?",
+    "Yes": "Sim",
+    "No, one color per driver": "Não, uma cor por piloto",
+    "Gold / Silver / Bronze": "Ouro / Prata / Bronze",
+    "Platinum / Gold / Silver / Bronze": "Platina / Ouro / Prata / Bronze",
+    "Division 1 / 2 / 3 / 4": "Divisão 1 / 2 / 3 / 4",
+    "Exactly as saved in the file": "Exatamente como está no arquivo",
+    "Let me type the names": "Quero digitar os nomes",
+    "Which ones?": "Quais?",
+    "Name for {name} ({count} cars)": "Nome para {name} ({count} carros)",
+    "  {name} -> {new} ({count} cars)": "  {name} -> {new} ({count} carros)",
+    "  The file has only one category, so everyone has the same color.": "  O arquivo só tem uma categoria, então todos ficam com a mesma cor.",
+    "\n2. Pick one (newest first)": "\n2. Escolha uma (a mais recente primeiro)",
+    "Reading the latest sessions, this can take a minute...": "Lendo as últimas sessões, pode levar um minuto...",
+    "\n3. Categories": "\n3. Categorias",
+    "\n4. Charts": "\n4. Gráficos",
+    "League name to highlight (empty = none)": "Nome da liga em destaque (vazio = nenhum)",
+    "Nothing found.": "Nada encontrado.",
+    "No session matches the filters.": "Nenhuma sessão com esses filtros.",
+    "Error: {error}": "Erro: {error}",
+    "\nCancelled.": "\nCancelado.",
+    "Type the number, or M for older ones": "Digite o número, ou M para ver mais antigas",
+    "cars": "carros",
+    "Race": "Corrida",
+    "Qualifying": "Classificação",
+    "Practice": "Treino",
+    "The address is not valid. Example: 203.0.113.10:8821": "O endereço não é válido. Exemplo: 203.0.113.10:8821",
+    "The server answered, but the user or password is wrong.": "O servidor respondeu, mas o usuário ou a senha está errado.",
+    "The connection to {where} was lost during login.": "A conexão com {where} caiu durante o login.",
+    "The connection was lost while listing the files.": "A conexão caiu enquanto eu listava os arquivos.",
+    "Could not download {name}.": "Não consegui baixar {name}.",
+    "{name} cannot be downloaded.": "{name} não pode ser baixado.",
+    "{name} is too big for a result file.": "{name} é grande demais para um arquivo de resultado.",
+    "The server {where} did not answer ({error}). The user and password were not tested. Check that the server is running and that the address and port are right.": "O servidor {where} não respondeu ({error}). O usuário e a senha não foram testados. Veja se o servidor está ligado e se o endereço e a porta estão certos.",
+    'No result file found on the server. ACC only saves them with "dumpLeaderboards": 1 in settings.json.': 'Nenhum arquivo de resultado no servidor. O ACC só salva com "dumpLeaderboards": 1 no settings.json.',
+    "not an ACC session result": "não é um resultado de sessão do ACC",
+    "{name}: not a valid ACC result file": "{name}: não é um arquivo de resultado válido do ACC",
+    "{name}: unknown session type {kind}": "{name}: tipo de sessão desconhecido {kind}",
+    "No ACC result file found in {path}": "Nenhum arquivo de resultado do ACC em {path}",
+    "Cannot read {path}": "Não consigo ler {path}",
+    "{path} is empty": "{path} está vazio",
+    "{path}: every line needs a value in the 'name' column": "{path}: toda linha precisa de um valor na coluna 'name'",
+    "{path}: color {color} of {name} must look like #1c69d4": "{path}: a cor {color} de {name} deve ser no formato #1c69d4",
+    "{path}: every line needs 'position' (a number) and 'driver'": "{path}: toda linha precisa de 'position' (um número) e 'driver'",
+    "{path}: position {position} or driver {driver} is repeated": "{path}: a posição {position} ou o piloto {driver} está repetido",
+    "{name}: lap 1 in the file was wrong and was rebuilt": "{name}: a volta 1 estava errada no arquivo e foi reconstruída",
+    "No driver completed a lap in this session": "Nenhum piloto completou uma volta nesta sessão",
+    "grid: not found in the race: {names}": "grid: não encontrados na corrida: {names}",
+}

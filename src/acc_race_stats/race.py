@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .gamedata import CLASS_ORDER, CUP_CATEGORIES, NO_TIME, car_name, track_name
+from .messages import tr
 from .results import Session
 from .roster import Roster
 from .timing import start_offsets
@@ -142,7 +143,7 @@ class Race:
                 offset = offsets.get(driver.car_id, 0)
                 driver.lap_times[0] += offset
                 if abs(offset) > 60_000:
-                    self.warnings.append(f"{driver.name}: lap 1 in the file was wrong and was rebuilt")
+                    self.warnings.append(tr("{name}: lap 1 in the file was wrong and was rebuilt", name=driver.name))
             clock = 0
             for time in driver.lap_times:
                 clock += time
@@ -162,9 +163,9 @@ class Race:
             self.drivers.append(driver)
 
         if not self.drivers:
-            raise ValueError("No driver completed a lap in this session")
+            raise ValueError(tr("No driver completed a lap in this session"))
         if unused_grid:
-            self.warnings.append("grid: not found in the race: " + ", ".join(sorted(unused_grid)))
+            self.warnings.append(tr("grid: not found in the race: {names}", names=", ".join(sorted(unused_grid))))
         self.by_id = {d.car_id: d for d in self.drivers}
         for item in (data.get("penalties") or []) + (data.get("post_race_penalties") or []):
             target = self.by_id.get(item.get("carId"))

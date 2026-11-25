@@ -19,6 +19,7 @@ from .divisions import PRESETS, found_categories, preset_map
 from .events import Event, find_events, useful
 from .gamedata import TRACKS, track_name
 from .i18n import translator
+from .messages import set_language, tr
 from .palette import apply_colors
 from .race import Race
 from .report import write
@@ -30,7 +31,12 @@ from .terminal import question
 
 PAGE = 10
 KINDS = {"race": {"R"}, "practice": {"FP"}, "qualifying": {"Q"}, "all": {"R", "Q", "FP"}}
+# names of the output folders
 LABEL = {"R": "race", "Q": "qualifying", "FP": "practice"}
+
+
+def kind_name(kind: str) -> str:
+    return {"R": tr("Race"), "Q": tr("Qualifying"), "FP": tr("Practice")}[kind]
 
 
 class UserError(Exception):
@@ -52,7 +58,7 @@ def parse_track(text: str) -> str | None:
     }
     if len(options) != 1:
         hint = ", ".join(sorted(track_name(i) for i in options or TRACKS))
-        raise UserError(f"Track {text!r} {'is ambiguous' if options else 'not found'}. Options: {hint}")
+        raise UserError(tr("Track {text} not found or ambiguous. Options: {hint}", text=repr(text), hint=hint))
     return options.pop()
 
 
@@ -76,7 +82,7 @@ def parse_day(text: str, today: date | None = None) -> date | None:
                 continue
             if day <= today:
                 return day
-    raise UserError(f"Date {text!r} not understood. Use day/month, like 24/11, or 2026-11-24")
+    raise UserError(tr("Date {text} not understood. Use day/month, like 24/11, or 2026-11-24", text=repr(text)))
 
 
 def parse_pairs(items: list[str]) -> dict[str, str]:
@@ -84,19 +90,19 @@ def parse_pairs(items: list[str]) -> dict[str, str]:
     for item in items:
         key, sep, value = item.partition("=")
         if not sep or not key or not value:
-            raise UserError(f"{item!r} must look like NAME=VALUE")
+            raise UserError(tr("{item} must look like NAME=VALUE", item=repr(item)))
         pairs[key.strip().upper()] = value.strip()
     return pairs
 
 
 # ---------------------------------------------------------------- questions
 def ask(text: str, default: str = "", instant: Container[str] = ()) -> str:
-    hint = f" (press Enter for {default})" if default else ""
+    hint = tr(" (press Enter for {default})", default=default) if default else ""
     return question(f"{text}{hint}: ", instant=instant).strip() or default
 
 
 def ask_password() -> str:
-    return question("FTP password: ", hidden=True)
+    return question(tr("FTP password: "), hidden=True)
 
 
 def ask_until(question: str, parse, default: str = ""):  # type: ignore[no-untyped-def]
@@ -114,28 +120,28 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
     # with up to nine options the number is enough, without Enter
     keys = [str(n) for n in range(1, len(options) + 1)] if len(options) < 10 else []
     while True:
-        answer = ask("Number", str(default), keys)
+        answer = ask(tr("Number"), str(default), keys)
         if answer.isdigit() and 1 <= int(answer) <= len(options):
             return int(answer) - 1
-        print(f"  Type a number from 1 to {len(options)}")
+        print(tr("  Type a number from 1 to {last}", last=len(options)))
 
 
 def ask_connection() -> Server:
-    print("\n1. Connection (copy it from your game server panel, for example G-Portal)")
+    print(tr("\n1. Connection (copy it from your game server panel, for example G-Portal)"))
     saved = load_server()
     address: Address | None = None
     if saved:
-        same = f"{saved.host}:{saved.port}, user {saved.user}"
-        if choose("Which server?", [f"The same as last time ({same})", "Another one"]) == 0:
+        same = tr("{server}, user {user}", server=f"{saved.host}:{saved.port}", user=saved.user)
+        if choose(tr("Which server?"), [tr("The same as last time ({same})", same=same), tr("Another one")]) == 0:
             address = saved
     while True:
         if address is None:
-            address = ask_until("FTP address (IP, or IP:port)", parse_address)
+            address = ask_until(tr("FTP address (IP, or IP:port)"), parse_address)
             if address.port == 21:
-                address.port = ask_until("FTP port", _port, "21")
-        address.user = address.user or ask("FTP user")
+                address.port = ask_until(tr("FTP port"), _port, "21")
+        address.user = address.user or ask(tr("FTP user"))
         address.password = address.password or ask_password()
-        print("Connecting...")
+        print(tr("Connecting..."))
         try:
             server = Server(address)
         except LoginError as error:
@@ -146,24 +152,24 @@ def ask_connection() -> Server:
             continue
         except ServerError as error:
             print(f"  {error}")
-            if choose("What now?", ["Try again", "Type another address"]) == 1:
+            if choose(tr("What now?"), [tr("Try again"), tr("Type another address")]) == 1:
                 address = None
             continue
-        print("Connected.")
+        print(tr("Connected."))
         save_server(address)
         return server
 
 
 def _port(text: str) -> int:
     if not text.isdigit() or not 0 < int(text) < 65536:
-        raise UserError("The port is a number, like 21 or 31921")
+        raise UserError(tr("The port is a number, like 21 or 31921"))
     return int(text)
 
 
 # ---------------------------------------------------------------- picking sessions
 def describe(session: Session) -> str:
     when = f"{session.when:%d/%m/%Y %H:%M}" if session.when else session.name
-    return f"{when}  {track_name(session.track):<18} {LABEL[session.kind]:<11} {session.cars} cars"
+    return f"{when}  {track_name(session.track):<18} {kind_name(session.kind):<14} {session.cars} {tr('cars')}"
 
 
 def same_weekend(anchor: Session, sessions: list[Session]) -> list[Session]:
@@ -194,7 +200,7 @@ def search_server(server: Server, day: date | None, track: str | None, kinds: se
     names = server.search(day, kinds)
     if not names:
         return []
-    print(f"Reading {len(names)} file(s)...")
+    print(tr("Reading {count} file(s)...", count=len(names)))
     sessions = [found[0] for name in names if (found := server.try_download(name))]
     return [s for s in sessions if useful(s) and (track is None or s.track == track)]
 
@@ -230,26 +236,26 @@ def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace
                 class_map=class_map, league=a.league, event=a.event,
             )  # fmt: skip
         except ValueError as error:
-            print(f"Skipped {session.name}: {error}")
+            print(tr("Skipped {name}: {error}", name=session.name, error=error))
             continue
         colors = parse_pairs(a.class_color)
         for color in colors.values():
             if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-                raise UserError(f"Color {color!r} must look like #1c69d4")
+                raise UserError(tr("Color {color} must look like #1c69d4", color=color))
         mode = apply_colors(race, "driver" if a.divisions == "none" else a.color_by, colors)
         stamp = f"{session.when:%Y-%m-%d-%H%M}" if session.when else Path(session.name).stem
         out = a.output / re.sub(r"[^A-Za-z0-9_-]", "-", f"{stamp}-{session.track}-{LABEL[session.kind]}")
         out.mkdir(parents=True, exist_ok=True)
-        print(f"Drawing {LABEL[session.kind]} at {race.track}...")
+        print(tr("Drawing charts: {what}, {track}...", what=kind_name(session.kind), track=race.track))
         images = write(race, out, t, mode)
-        print(f"  {len(images)} charts (colors by {mode}) in {out}")
+        print(tr("  {count} charts in {folder}", count=len(images), folder=out))
         if session.kind == "R" and not any(d.grid for d in race.drivers):
-            print("  No starting grid: qualifying file not found (or use --grid grid.csv)")
+            print(tr("  No starting grid: qualifying file not found (or use --grid grid.csv)"))
         for warning in race.warnings:
-            print(f"  Note: {warning}")
+            print(tr("  Note: {warning}", warning=warning))
         folders.append(out)
     if not folders:
-        raise UserError("Nothing to draw in the chosen session.")
+        raise UserError(tr("Nothing to draw in the chosen session."))
     return folders
 
 
@@ -266,8 +272,8 @@ def open_folder(path: Path) -> None:
 # ---------------------------------------------------------------- entry points
 def event_line(event: Event) -> str:
     when = f"{event.main.when:%d/%m/%Y %H:%M}" if event.main.when else ""
-    what = " + ".join(LABEL[k].capitalize() for k in reversed(event.kinds))
-    return f"{when}   {track_name(event.main.track):<18} {event.cars:>2} cars   {what}"
+    what = " + ".join(kind_name(k) for k in reversed(event.kinds))
+    return f"{when}   {track_name(event.main.track):<18} {event.cars:>2} {tr('cars')}   {what}"
 
 
 def choose_event(events: Iterator[Event]) -> Event:
@@ -279,25 +285,26 @@ def choose_event(events: Iterator[Event]) -> Event:
             shown.append(event)
             print(f"  {len(shown):>2}  {event_line(event)}", flush=True)
         if not shown:
-            raise UserError("No session with enough cars was found. Use --min-cars 1 to see solo sessions.")
+            raise UserError(tr("No session with enough cars was found. Use --min-cars 1 to see solo sessions."))
         if len(shown) == start:
-            print("  There are no older sessions.")
+            print(tr("  There are no older sessions."))
         more = len(shown) - start == PAGE
         while True:
-            answer = ask("Type the number" + (", or M for older ones" if more else ""), "1")
+            prompt = tr("Type the number, or M for older ones") if more else tr("Type the number")
+            answer = ask(prompt, "1")
             if answer.isdigit() and 1 <= int(answer) <= len(shown):
                 return shown[int(answer) - 1]
             if more and answer.lower() == "m":
                 break
-            print(f"  Type a number from 1 to {len(shown)}")
+            print(tr("  Type a number from 1 to {last}", last=len(shown)))
 
 
 def choose_sessions(event: Event) -> list[Session]:
     if len(event.sessions) == 1:
         return event.sessions
     sessions = event.sessions[::-1]
-    options = [LABEL[s.kind].capitalize() for s in sessions] + ["All of them"]
-    picked = choose("What do you want to see?", options)
+    options = [kind_name(s.kind) for s in sessions] + [tr("All of them")]
+    picked = choose(tr("What do you want to see?"), options)
     return event.sessions if picked == len(sessions) else [sessions[picked]]
 
 
@@ -306,38 +313,52 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
     found = found_categories(session)
     if a.divisions or a.class_map or a.color_by == "driver" or a.roster:
         return
-    print("Categories saved in the file: " + ", ".join(f"{name} ({count})" for name, count in found.items()))
-    has = choose("Does your league use categories?", ["Yes", "No, one color per driver"], 1 if len(found) > 1 else 2)
+    print(tr("Categories saved in the file: ") + ", ".join(f"{name} ({count})" for name, count in found.items()))
+    has = choose(
+        tr("Does your league use categories?"), [tr("Yes"), tr("No, one color per driver")], 1 if len(found) > 1 else 2
+    )
     if has == 1:
         a.divisions = "none"
         return
     options = [
         ("pro", "Pro / Pro-Am / Am"),
-        ("metal", "Gold / Silver / Bronze"),
-        ("fia", "Platinum / Gold / Silver / Bronze"),
-        ("numbers", "Division 1 / 2 / 3 / 4"),
-        ("game", "Exactly as saved in the file"),
-        ("custom", "Let me type the names"),
+        ("metal", tr("Gold / Silver / Bronze")),
+        ("fia", tr("Platinum / Gold / Silver / Bronze")),
+        ("numbers", tr("Division 1 / 2 / 3 / 4")),
+        ("game", tr("Exactly as saved in the file")),
+        ("custom", tr("Let me type the names")),
     ]
-    a.divisions = options[choose("Which ones?", [text for _, text in options])][0]
+    a.divisions = options[choose(tr("Which ones?"), [text for _, text in options])][0]
     if a.divisions == "custom":
         a.divisions = "game"
-        a.class_map = [f"{n}={ask(f'Name for {n} ({c} cars)', n).upper()}" for n, c in found.items()]
+        for name, count in found.items():
+            answer = ask(tr("Name for {name} ({count} cars)", name=name, count=count), name)
+            a.class_map = [*a.class_map, f"{name}={answer.upper()}"]
     names = preset_map(a.divisions, list(found)) | parse_pairs(a.class_map)
     for name, count in found.items():
-        print(f"  {name} -> {names.get(name, name)} ({count} cars)")
+        print(
+            tr(
+                "  {name} -> {new} ({count} cars)",
+                name=name,
+                new=translator(a.lang or "en")("class_name", name=names.get(name, name)),
+                count=count,
+            )
+        )
     if len(found) == 1:
-        print("  The file has only one category, so everyone has the same color.")
+        print(tr("  The file has only one category, so everyone has the same color."))
         a.color_by = "class"
 
 
 def guided(a: argparse.Namespace) -> list[Path]:
     print("ACC Race Stats\n" + "=" * 14)
+    if not a.lang:
+        a.lang = ["en", "pt-br"][choose("Language / Idioma", ["English", "Português (Brasil)"])]
+        set_language(a.lang)
     server = ask_connection()
     try:
-        print("\n2. Pick one (newest first)")
+        print(tr("\n2. Pick one (newest first)"))
         names = server.find_results()
-        print("Reading the latest sessions, this can take a minute...")
+        print(tr("Reading the latest sessions, this can take a minute..."))
 
         @cache
         def load(name: str) -> Session | None:
@@ -348,11 +369,10 @@ def guided(a: argparse.Namespace) -> list[Path]:
     finally:
         server.close()
     sessions = choose_sessions(event)
-    print("\n3. Categories")
+    print(tr("\n3. Categories"))
     ask_divisions(a, sessions[-1])
-    print("\n4. Charts")
-    a.league = a.league or ask("League name to highlight (empty = none)")
-    a.lang = a.lang or ["en", "pt-br"][choose("Language of the charts", ["English", "Português (Brasil)"])]
+    print(tr("\n4. Charts"))
+    a.league = a.league or ask(tr("League name to highlight (empty = none)"))
     return generate(sessions, event.sessions, a)
 
 
@@ -361,17 +381,17 @@ def direct(a: argparse.Namespace) -> list[Path]:
     if a.ftp:
         address = parse_address(a.ftp)
         address.port = a.port or address.port
-        address.user = a.user or address.user or ask("FTP user")
+        address.user = a.user or address.user or ask(tr("FTP user"))
         address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password()
         server = Server(address)
         try:
             server.find_results()
             found = search_server(server, day, track, KINDS[a.session])
             if a.list:
-                print("\n".join(describe(s) for s in found) or "Nothing found.")
+                print("\n".join(describe(s) for s in found) or tr("Nothing found."))
                 return []
             if not found:
-                raise UserError("No session matches the filters.")
+                raise UserError(tr("No session matches the filters."))
             newest = sorted(found, key=lambda s: s.name)
             anchor = ([s for s in newest if s.kind == "R"] or newest)[-1]
             pool = with_companions(server, anchor)
@@ -381,10 +401,10 @@ def direct(a: argparse.Namespace) -> list[Path]:
         pool = demo.weekend(single_class=a.color_by == "driver") if a.demo else load_path(a.path)
         found = filter_sessions(pool, day, track, KINDS[a.session])
         if a.list:
-            print("\n".join(describe(s) for s in found) or "Nothing found.")
+            print("\n".join(describe(s) for s in found) or tr("Nothing found."))
             return []
         if not found:
-            raise UserError("No session matches the filters.")
+            raise UserError(tr("No session matches the filters."))
         newest = sorted(found, key=lambda s: s.name)
         anchor = ([s for s in newest if s.kind == "R"] or newest)[-1]
     return generate(same_weekend(anchor, pool) if a.session == "all" else [anchor], pool, a)
@@ -405,7 +425,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", choices=list(KINDS), default="race", help="what to draw (default: race)")
     p.add_argument("--min-cars", type=int, default=2, help="hide events with fewer cars in the questions (default: 2)")
     p.add_argument("--list", action="store_true", help="only list the sessions found")
-    p.add_argument("--lang", choices=["en", "pt-br"], help="language of the charts (default: en)")
+    p.add_argument("--lang", choices=["en", "pt-br"], help="language of the questions and charts (default: en)")
     p.add_argument(
         "--divisions",
         choices=["none", "game", *PRESETS],
@@ -432,6 +452,7 @@ def main(argv: list[str] | None = None) -> None:
             stream.reconfigure(errors="replace")
     parser = build_parser()
     a = parser.parse_args(argv)
+    set_language(a.lang or "en")
     if sum(map(bool, (a.path, a.ftp, a.demo))) > 1:
         parser.error("choose only one of: path, --ftp, --demo")
     interactive = not (a.path or a.ftp or a.demo)
@@ -440,8 +461,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         folders = guided(a) if interactive else direct(a)
     except (UserError, ServerError, ResultError, RosterError) as error:
-        sys.exit(f"Error: {error}")
+        sys.exit(tr("Error: {error}", error=error))
     except (KeyboardInterrupt, EOFError):
-        sys.exit("\nCancelled.")
+        sys.exit(tr("\nCancelled."))
     if folders and not a.no_open:
         open_folder(folders[0] if len(folders) == 1 else a.output)

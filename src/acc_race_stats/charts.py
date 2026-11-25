@@ -97,7 +97,7 @@ class Charts:
             for name in self.race.classes:
                 own = [d.color for d in self.race.drivers if d.driver_class == name and not d.custom_color]
                 if own:
-                    handles.append(Patch(color=own[0], label=name))
+                    handles.append(Patch(color=own[0], label=self.t("class_name", name=name)))
             fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(0.03, 0), ncol=5, fontsize=11, handlelength=1)
 
     def names(self, ax: Any, drivers: Sequence[Driver], labels: Sequence[str]) -> None:
@@ -145,7 +145,15 @@ class Charts:
             ax.text(0.05, y, short(driver.name), va="center", fontsize=12.5)
             if self.mode == "class":
                 box = {"boxstyle": "round,pad=.3", "fc": driver.color, "ec": driver.color}
-                ax.text(0.27, y, driver.driver_class, fontsize=10, va="center", color=ink(driver.color), bbox=box)
+                ax.text(
+                    0.27,
+                    y,
+                    self.t("class_name", name=driver.driver_class),
+                    fontsize=10,
+                    va="center",
+                    color=ink(driver.color),
+                    bbox=box,
+                )
             self.logo(ax, 0.374, y, driver.car)
             ax.text(0.392, y, driver.car, fontsize=11.5, va="center")
             for (x, _), (value, color) in zip(columns[-len(cells(driver)) :], cells(driver), strict=True):
@@ -319,7 +327,9 @@ class Charts:
                 mean = [statistics.mean(v for _, v in laps[max(0, i - 2) : i + 1]) / 1000 for i in range(len(laps))]
                 label = f"P{d.class_position} {short(d.name)} (P{d.position})"
                 ax.plot([n for n, _ in laps], mean, color=d.color, ls=dash, lw=2.2, label=label)
-            ax.set_title(name, loc="left", fontsize=17, color=own[0].color, fontweight="bold")
+            ax.set_title(
+                self.t("class_name", name=name), loc="left", fontsize=17, color=own[0].color, fontweight="bold"
+            )
             if ax.lines:
                 ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.07), fontsize=10.5)
             ax.grid(alpha=0.6)

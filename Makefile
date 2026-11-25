@@ -8,10 +8,10 @@ ARGS ?=
 run: setup  ## ask everything step by step
 	@uv run --quiet --no-dev acc-race-stats $(ARGS)
 
-en: setup  ## charts in English
+en: setup  ## questions and charts in English
 	@uv run --quiet --no-dev acc-race-stats --lang en $(ARGS)
 
-pt-br: setup  ## charts in Portuguese
+pt-br: setup  ## questions and charts in Portuguese
 	@uv run --quiet --no-dev acc-race-stats --lang pt-br $(ARGS)
 
 demo: setup  ## invented race weekend, no server needed

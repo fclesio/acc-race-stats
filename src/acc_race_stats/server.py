@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import PurePosixPath
 
+from .messages import tr
 from .results import ResultError, Session, parse_name, session_from_bytes
 
 MAX_FILE = 20_000_000
@@ -37,9 +38,9 @@ def parse_address(text: str) -> Address:
         url = urllib.parse.urlsplit(text if "://" in text else f"ftp://{text}")
         port = url.port or 21
     except ValueError as error:
-        raise ServerError("The address is not valid. Example: 203.0.113.10:8821") from error
+        raise ServerError(tr("The address is not valid. Example: 203.0.113.10:8821")) from error
     if url.scheme != "ftp" or not url.hostname:
-        raise ServerError("The address is not valid. Example: 203.0.113.10:8821")
+        raise ServerError(tr("The address is not valid. Example: 203.0.113.10:8821"))
     return Address(
         url.hostname, port, urllib.parse.unquote(url.username or ""), urllib.parse.unquote(url.password or "")
     )
@@ -60,17 +61,20 @@ class Server:
             self.ftp.connect(address.host, address.port)
         except (OSError, EOFError, ftplib.Error) as error:
             raise ServerError(
-                f"The server {where} did not answer ({type(error).__name__}). The user and password were not tested. "
-                "Check that the server is running and that the address and port are right."
+                tr(
+                    "The server {where} did not answer ({error}). The user and password were not tested. Check that the server is running and that the address and port are right.",
+                    where=where,
+                    error=type(error).__name__,
+                )
             ) from error
         try:
             self.ftp.login(address.user, address.password)
         except ftplib.error_perm as error:
             self.ftp.close()
-            raise LoginError("The server answered, but the user or password is wrong.") from error
+            raise LoginError(tr("The server answered, but the user or password is wrong.")) from error
         except (OSError, EOFError, ftplib.Error) as error:
             self.ftp.close()
-            raise ServerError(f"The connection to {where} was lost during login.") from error
+            raise ServerError(tr("The connection to {where} was lost during login.", where=where)) from error
 
     def close(self) -> None:
         self.ftp.close()
@@ -98,7 +102,7 @@ class Server:
             except ftplib.Error:
                 continue
             except (OSError, EOFError) as error:
-                raise ServerError("The connection was lost while listing the files.") from error
+                raise ServerError(tr("The connection was lost while listing the files.")) from error
             names = [n for n in files if parse_name(n)]
             if names:
                 self.folder, self.names = folder, sorted(names, key=lambda n: parse_name(n) or ())
@@ -106,7 +110,7 @@ class Server:
             if folder.count("/") <= 3:
                 queue += [f"{folder.rstrip('/')}/{n}" for n in sorted(folders, key=lambda n: n != "results")]
         raise ServerError(
-            'No result file found on the server. ACC only saves them with "dumpLeaderboards": 1 in settings.json.'
+            tr('No result file found on the server. ACC only saves them with "dumpLeaderboards": 1 in settings.json.')
         )
 
     def download(self, name: str) -> tuple[Session, bytes]:
@@ -118,9 +122,9 @@ class Server:
             try:
                 raw = self._fetch(name)
             except (OSError, EOFError, ftplib.Error) as error:
-                raise ServerError(f"Could not download {name}.") from error
+                raise ServerError(tr("Could not download {name}.", name=name)) from error
         except ftplib.Error as error:
-            raise ResultError(f"{name} cannot be downloaded.") from error
+            raise ResultError(tr("{name} cannot be downloaded.", name=name)) from error
         return session_from_bytes(name, raw), raw
 
     def _fetch(self, name: str) -> bytes:
@@ -129,7 +133,7 @@ class Server:
         def receive(chunk: bytes) -> None:
             buffer.write(chunk)
             if buffer.tell() > MAX_FILE:
-                raise ResultError(f"{name} is too big for a result file.")
+                raise ResultError(tr("{name} is too big for a result file.", name=name))
 
         self.ftp.retrbinary(f"RETR {self.folder.rstrip('/')}/{name}", receive)
         return buffer.getvalue()

@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from .messages import tr
+
 FILE_NAME = re.compile(r"^(?:results_)?(\d{6}_\d{6})_(R\d?|Q\d?|FP\d?)\.json$", re.IGNORECASE)
 
 
@@ -54,7 +56,7 @@ def decode(raw: bytes) -> dict[str, Any]:
         text = raw.decode("utf-8-sig")
     data = json.loads(text)
     if not isinstance(data, dict) or "leaderBoardLines" not in (data.get("sessionResult") or {}):
-        raise ResultError("not an ACC session result")
+        raise ResultError(tr("not an ACC session result"))
     return data
 
 
@@ -62,11 +64,11 @@ def session_from_bytes(name: str, raw: bytes) -> Session:
     try:
         data = decode(raw)
     except (ValueError, UnicodeDecodeError) as error:
-        raise ResultError(f"{name}: not a valid ACC result file") from error
+        raise ResultError(tr("{name}: not a valid ACC result file", name=name)) from error
     parsed = parse_name(name)
     kind = str(data.get("sessionType", "")).upper().rstrip("0123456789") or (parsed[1] if parsed else "")
     if kind not in ("R", "Q", "FP"):
-        raise ResultError(f"{name}: unknown session type {kind!r}")
+        raise ResultError(tr("{name}: unknown session type {kind}", name=name, kind=repr(kind)))
     return Session(name, kind, data, parsed[0] if parsed else None)
 
 
@@ -81,7 +83,7 @@ def load_path(path: Path) -> list[Session]:
             if not path.is_dir():
                 raise
     if not sessions:
-        raise ResultError(f"No ACC result file found in {path}")
+        raise ResultError(tr("No ACC result file found in {path}", path=path))
     return sessions
 
 

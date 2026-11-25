@@ -22,7 +22,9 @@ def summary(race: Race, t: Translate, mode: str) -> str:
         lines.append(f"{medal} {d.name} ({d.car}){gap}")
     if mode == "class" and len(race.classes) > 1:
         lines += ["", f"*{t('class_winners')}*"]
-        lines += [f"{n}: {next(d.name for d in drivers if d.driver_class == n)}" for n in race.classes]
+        lines += [
+            f"{t('class_name', name=n)}: {next(d.name for d in drivers if d.driver_class == n)}" for n in race.classes
+        ]
     lines.append("")
     if race.kind == "R":
         pole = next((d for d in drivers if d.grid == 1), None)

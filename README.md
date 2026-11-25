@@ -3,13 +3,18 @@
 Charts and a report from Assetto Corsa Competizione server results. Connect to your game server, choose the session,
 and get PNG charts and a summary for your league chat. No game mods, no telemetry.
 
-## Quick start (Windows)
+## Quick start
 
-1. Download this project and unzip it.
-2. Double-click `Run.bat`. The first run installs [uv](https://docs.astral.sh/uv/), which brings Python and everything else.
-3. Answer the questions: connect to the server, then pick a number from the list.
+Download this project, unzip it and open a terminal in its folder.
 
-On macOS or Linux, with uv installed: `uv run --no-dev acc-race-stats`
+| | Command |
+|---|---|
+| Windows | `make` (in PowerShell: `.\make`), or double-click `make.bat` |
+| macOS, Linux | `make` |
+
+Nothing else to install: the first run downloads Python and the libraries, only once. (A Mac without the Apple command
+line tools offers to install them the first time `make` is used.)
+Then connect to the server and pick a number from the list.
 
 ```
 1. Connection (from your game server panel, for example G-Portal)
@@ -37,9 +42,11 @@ League name to highlight (empty = none): My League
 
 Results go to `reports/`: `charts/`, `summary.txt` and `race.json`.
 
-Try it without a server: `uv run acc-race-stats --demo --session all`
+Try it without a server: `make demo`
 
 ## Options
+
+Windows: `make --lang en`. macOS and Linux: `make ARGS="--lang en"`.
 
 | Option | What it does |
 |---|---|
@@ -87,10 +94,8 @@ written to the output.
 ## Development
 
 ```bash
-uv sync
-uv run pytest
-uv run ruff check .
-uv run mypy
+make test
+make check
 ```
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). License: MIT.

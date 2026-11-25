@@ -47,8 +47,15 @@ def parse_address(text: str) -> Address:
 
 class Server:
     def __init__(self, address: Address, timeout: float = 30) -> None:
+        self.address, self.timeout = address, timeout
+        self.folder = ""
+        self.names: list[str] = []
+        self.connect()
+
+    def connect(self) -> None:
+        address = self.address
         where = f"{address.host}:{address.port}"
-        self.ftp = ftplib.FTP(timeout=timeout)
+        self.ftp = ftplib.FTP(timeout=self.timeout)
         try:
             self.ftp.connect(address.host, address.port)
         except (OSError, EOFError, ftplib.Error) as error:
@@ -64,8 +71,6 @@ class Server:
         except (OSError, EOFError, ftplib.Error) as error:
             self.ftp.close()
             raise ServerError(f"The connection to {where} was lost during login.") from error
-        self.folder = ""
-        self.names: list[str] = []
 
     def close(self) -> None:
         self.ftp.close()
@@ -105,18 +110,29 @@ class Server:
         )
 
     def download(self, name: str) -> tuple[Session, bytes]:
+        try:
+            raw = self._fetch(name)
+        except (OSError, EOFError, ftplib.error_temp):  # idle servers drop the connection: one more try
+            self.close()
+            self.connect()
+            try:
+                raw = self._fetch(name)
+            except (OSError, EOFError, ftplib.Error) as error:
+                raise ServerError(f"Could not download {name}.") from error
+        except ftplib.Error as error:
+            raise ResultError(f"{name} cannot be downloaded.") from error
+        return session_from_bytes(name, raw), raw
+
+    def _fetch(self, name: str) -> bytes:
         buffer = io.BytesIO()
 
         def receive(chunk: bytes) -> None:
             buffer.write(chunk)
             if buffer.tell() > MAX_FILE:
-                raise ServerError(f"{name} is too big for a result file.")
+                raise ResultError(f"{name} is too big for a result file.")
 
-        try:
-            self.ftp.retrbinary(f"RETR {self.folder.rstrip('/')}/{name}", receive)
-        except (OSError, EOFError, ftplib.Error) as error:
-            raise ServerError(f"Could not download {name}.") from error
-        return session_from_bytes(name, buffer.getvalue()), buffer.getvalue()
+        self.ftp.retrbinary(f"RETR {self.folder.rstrip('/')}/{name}", receive)
+        return buffer.getvalue()
 
     def search(self, day: date | None, kinds: set[str], margin: int = 3, limit: int = 40) -> list[str]:
         """Newest first: files of these kinds around a day (or the newest ones without a day)."""

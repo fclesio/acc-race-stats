@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import getpass
 import os
 import re
 import subprocess
@@ -21,6 +20,7 @@ from .events import Event, find_events, useful
 from .gamedata import TRACKS, track_name
 from .i18n import translator
 from .palette import apply_colors
+from .password import ask_password
 from .race import Race
 from .report import write
 from .results import ResultError, Session, load_path, matching_qualifying, parse_name
@@ -128,9 +128,7 @@ def ask_connection() -> Server:
             if address.port == 21:
                 address.port = ask_until("FTP port", _port, "21")
         address.user = address.user or ask("FTP user")
-        address.password = address.password or getpass.getpass(
-            "FTP password (nothing appears while you type, then press Enter): "
-        )
+        address.password = address.password or ask_password("FTP password: ")
         print("Connecting...")
         try:
             server = Server(address)
@@ -373,9 +371,7 @@ def direct(a: argparse.Namespace) -> list[Path]:
         address = parse_address(a.ftp)
         address.port = a.port or address.port
         address.user = a.user or address.user or ask("FTP user")
-        address.password = (
-            address.password or os.environ.get("ACC_FTP_PASSWORD") or getpass.getpass("FTP password (hidden): ")
-        )
+        address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password("FTP password: ")
         server = Server(address)
         try:
             server.find_results()

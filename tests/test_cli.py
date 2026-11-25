@@ -8,6 +8,7 @@ import pytest
 from acc_race_stats import cli, demo
 from acc_race_stats.divisions import found_categories, preset_map
 from acc_race_stats.events import Event
+from acc_race_stats.password import collect
 from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
 from acc_race_stats.settings import load_server, save_server
 
@@ -103,7 +104,7 @@ def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
     answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"])
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
-    monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
+    monkeypatch.setattr(cli, "ask_password", lambda question: next(passwords))
     cli.main(["--output", str(tmp_path)])
     text = capsys.readouterr().out
     assert "user or password is wrong" in text and "secret" not in text
@@ -172,7 +173,7 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
 
 
 def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
-    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
     for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", ""], ["", "", "", "2", "", ""]):
         replies = iter(answers)
         monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
@@ -189,7 +190,7 @@ def test_broken_settings_are_ignored(settings):
 def test_solo_events_are_hidden(ftp, fast, tmp_path, monkeypatch, capsys):
     replies = iter([f"127.0.0.1:{ftp.port}", "me"])
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
-    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
     with pytest.raises(SystemExit, match="--min-cars 1"):
         cli.main(["--output", str(tmp_path), "--min-cars", "99"])
 
@@ -226,7 +227,7 @@ def test_default_language_is_english(fast, tmp_path):
 def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("127.0.0.1", ftp.port, "me"))
     passwords, replies = iter(["wrong", "secret"]), iter(["1", "1", "1", "2", "", ""])
-    monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
+    monkeypatch.setattr(cli, "ask_password", lambda question: next(passwords))
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
     assert list(tmp_path.iterdir())
@@ -235,7 +236,29 @@ def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fas
 def test_another_server(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("192.0.2.1", 21, "old"))
     replies = iter(["2", f"127.0.0.1:{ftp.port}", "me", "1", "1", "2", "", ""])
-    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
     assert load_server() == Address("127.0.0.1", ftp.port, "me")
+
+
+@pytest.mark.parametrize(
+    ("keys", "password", "screen"),
+    [
+        ("abc\r", "abc", "***\n"),
+        ("ab\x7f\x7f\x7fç1\n", "ç1", "**\b \b\b \b**\n"),
+        ("wrong\x15ok\r", "ok", "*****" + "\b \b" * 5 + "**\n"),
+        ("\x1b[200~paste\x1b[201~\x1b[A\r", "paste", "*****\n"),
+    ],
+)
+def test_password_shows_asterisks(keys, password, screen):
+    reader, shown = iter(keys), []
+    assert collect(lambda: next(reader), shown.append) == password
+    assert "".join(shown) == screen
+
+
+def test_password_can_be_cancelled():
+    with pytest.raises(KeyboardInterrupt):
+        collect(iter("a\x03").__next__, lambda text: None)
+    with pytest.raises(EOFError):
+        collect(lambda: "", lambda text: None)

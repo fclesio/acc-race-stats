@@ -20,7 +20,7 @@ Then connect to the server and pick a number from the list.
 1. Connection (from your game server panel, for example G-Portal)
 FTP address (IP, or IP:port): 203.0.113.10:31921
 FTP user: myuser
-FTP password (nothing appears while you type, then press Enter):
+FTP password: ********
 Connected.
 
 2. Pick one (newest first)

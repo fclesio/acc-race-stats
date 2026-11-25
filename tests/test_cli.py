@@ -6,6 +6,7 @@ from datetime import date
 import pytest
 
 from acc_race_stats import cli, demo
+from acc_race_stats.divisions import found_categories, preset_map
 from acc_race_stats.events import Event
 from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
 from acc_race_stats.settings import load_server
@@ -99,7 +100,7 @@ def fast(monkeypatch):
 
 
 def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
-    answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "My League"])
+    answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"])
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
     monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
@@ -172,7 +173,7 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
 
 def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
     monkeypatch.setattr("getpass.getpass", lambda question: "secret")
-    for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", ""], ["", "", "", "", ""]):
+    for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", ""], ["", "", "", "", "2", "", ""]):
         replies = iter(answers)
         monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
         cli.main(["--output", str(tmp_path)])
@@ -191,3 +192,32 @@ def test_solo_events_are_hidden(ftp, fast, tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("getpass.getpass", lambda question: "secret")
     with pytest.raises(SystemExit, match="--min-cars 1"):
         cli.main(["--output", str(tmp_path), "--min-cars", "99"])
+
+
+def test_division_presets():
+    assert preset_map("pro", ["PRO", "SILVER", "AM"]) == {"PRO": "PRO", "AM": "AM", "SILVER": "PRO-AM"}
+    assert preset_map("metal", ["PRO", "SILVER", "AM"]) == {"PRO": "GOLD", "SILVER": "SILVER", "AM": "BRONZE"}
+    assert preset_map("game", ["PRO"]) == {}
+    assert found_categories(demo.weekend()[2]) == {"PRO": 6, "PRO-AM": 6, "AM": 4}
+
+
+@pytest.mark.parametrize(
+    ("answers", "divisions", "names"),
+    [
+        (["2"], "none", []),
+        (["1", "2"], "metal", []),
+        (["", "6", "Elite", "", "Rookie"], "game", ["PRO=ELITE", "PRO-AM=PRO-AM", "AM=ROOKIE"]),
+    ],
+)
+def test_category_questions(answers, divisions, names, monkeypatch):
+    replies = iter(answers)
+    monkeypatch.setattr("builtins.input", lambda question: next(replies))
+    options = cli.build_parser().parse_args([])
+    cli.ask_divisions(options, demo.weekend()[2])
+    assert (options.divisions, options.class_map) == (divisions, names)
+
+
+def test_default_language_is_english(fast, tmp_path):
+    cli.main(["--demo", "--output", str(tmp_path)])
+    race = json.loads((tmp_path / "2026-03-15-2140-monza-race" / "race.json").read_text())
+    assert race["text"] == "Race"

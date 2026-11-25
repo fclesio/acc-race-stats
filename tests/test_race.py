@@ -4,6 +4,7 @@ import json
 import pytest
 
 from acc_race_stats import demo
+from acc_race_stats.gamedata import BRANDS
 from acc_race_stats.i18n import TEXT, translator
 from acc_race_stats.palette import apply_colors, driver_palette
 from acc_race_stats.race import Race
@@ -133,3 +134,14 @@ def test_translations_have_the_same_fields():
 def test_server_name_is_not_used_in_titles(weekend):
     assert Race(weekend[2]).title == "Monza"
     assert Race(weekend[2], league="My League", event="Round 3").title == "My League · Round 3 · Monza"
+
+
+def test_every_brand_has_a_logo_of_the_same_size():
+    from acc_race_stats.charts import LOGOS, plt
+
+    assert len({plt.imread(LOGOS / f"{name.lower()}.png").shape for name in BRANDS}) == 1
+
+
+def test_custom_categories_keep_the_order_of_the_league(weekend):
+    names = {"PRO": "ELITE", "PRO-AM": "CLUB", "AM": "BEGINNER"}
+    assert Race(weekend[2], class_map=names).classes == ["ELITE", "CLUB", "BEGINNER"]

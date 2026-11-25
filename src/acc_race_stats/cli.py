@@ -16,6 +16,7 @@ from itertools import islice
 from pathlib import Path
 
 from . import __version__, demo
+from .divisions import PRESETS, found_categories, preset_map
 from .events import Event, find_events, useful
 from .gamedata import TRACKS, track_name
 from .i18n import translator
@@ -205,14 +206,18 @@ def with_companions(server: Server, anchor: Session) -> list[Session]:
 def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace) -> list[Path]:
     roster = load_roster(a.roster) if a.roster else None
     grid = load_grid(a.grid) if a.grid else None
-    t = translator(a.lang)
+    t = translator(a.lang or "en")
     folders = []
+    # every session of the event uses the categories of its main one
+    pool_main = sessions[-1] if sessions else None
     for session in sessions:
         qualifying = matching_qualifying(session, pool) if session.kind == "R" else None
+        found = list(found_categories(pool_main or session))
+        class_map = preset_map(a.divisions or "", found) | parse_pairs(a.class_map)
         try:
             race = Race(
                 session, qualifying, roster=roster, grid=grid if session.kind == "R" else None,
-                class_map=parse_pairs(a.class_map), league=a.league, event=a.event,
+                class_map=class_map, league=a.league, event=a.event,
             )  # fmt: skip
         except ValueError as error:
             print(f"Skipped {session.name}: {error}")
@@ -221,7 +226,7 @@ def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace
         for color in colors.values():
             if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
                 raise UserError(f"Color {color!r} must look like #1c69d4")
-        mode = apply_colors(race, a.color_by, colors)
+        mode = apply_colors(race, "driver" if a.divisions == "none" else a.color_by, colors)
         stamp = f"{session.when:%Y-%m-%d-%H%M}" if session.when else Path(session.name).stem
         out = a.output / re.sub(r"[^A-Za-z0-9_-]", "-", f"{stamp}-{session.track}-{LABEL[session.kind]}")
         out.mkdir(parents=True, exist_ok=True)
@@ -286,6 +291,36 @@ def choose_sessions(event: Event) -> list[Session]:
     return event.sessions if picked == len(sessions) else [sessions[picked]]
 
 
+def ask_divisions(a: argparse.Namespace, session: Session) -> None:
+    """Categories of the league; nothing is asked when the options already say it."""
+    found = found_categories(session)
+    if a.divisions or a.class_map or a.color_by == "driver" or a.roster:
+        return
+    print("Categories saved in the file: " + ", ".join(f"{name} ({count})" for name, count in found.items()))
+    has = choose("Does your league use categories?", ["Yes", "No, one color per driver"], 1 if len(found) > 1 else 2)
+    if has == 1:
+        a.divisions = "none"
+        return
+    options = [
+        ("pro", "Pro / Pro-Am / Am"),
+        ("metal", "Gold / Silver / Bronze"),
+        ("fia", "Platinum / Gold / Silver / Bronze"),
+        ("numbers", "Division 1 / 2 / 3 / 4"),
+        ("game", "Exactly as saved in the file"),
+        ("custom", "Let me type the names"),
+    ]
+    a.divisions = options[choose("Which ones?", [text for _, text in options])][0]
+    if a.divisions == "custom":
+        a.divisions = "game"
+        a.class_map = [f"{n}={ask(f'Name for {n} ({c} cars)', n).upper()}" for n, c in found.items()]
+    names = preset_map(a.divisions, list(found)) | parse_pairs(a.class_map)
+    for name, count in found.items():
+        print(f"  {name} -> {names.get(name, name)} ({count} cars)")
+    if len(found) == 1:
+        print("  The file has only one category, so everyone has the same color.")
+        a.color_by = "class"
+
+
 def guided(a: argparse.Namespace) -> list[Path]:
     print("ACC Race Stats\n" + "=" * 14)
     server = ask_connection()
@@ -303,8 +338,11 @@ def guided(a: argparse.Namespace) -> list[Path]:
     finally:
         server.close()
     sessions = choose_sessions(event)
-    print("\n3. Titles")
+    print("\n3. Categories")
+    ask_divisions(a, sessions[-1])
+    print("\n4. Charts")
     a.league = a.league or ask("League name to highlight (empty = none)")
+    a.lang = a.lang or ["en", "pt-br"][choose("Language of the charts", ["English", "Português (Brasil)"])]
     return generate(sessions, event.sessions, a)
 
 
@@ -359,7 +397,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", choices=list(KINDS), default="race", help="what to draw (default: race)")
     p.add_argument("--min-cars", type=int, default=2, help="hide events with fewer cars in the questions (default: 2)")
     p.add_argument("--list", action="store_true", help="only list the sessions found")
-    p.add_argument("--lang", choices=["pt-br", "en"], default="pt-br", help="language of the charts (default: pt-br)")
+    p.add_argument("--lang", choices=["en", "pt-br"], help="language of the charts (default: en)")
+    p.add_argument(
+        "--divisions",
+        choices=["none", "game", *PRESETS],
+        help="categories: none, as in the game file, pro (Pro/Pro-Am/Am), metal (Gold/Silver/Bronze), "
+        "fia (Platinum/Gold/Silver/Bronze) or numbers (Division 1, 2...)",
+    )
     p.add_argument("--color-by", choices=["auto", "class", "driver"], default="auto",
                    help="auto: by class if the race has several classes, otherwise one color per driver")  # fmt: skip
     p.add_argument("--roster", type=Path, help="CSV with the columns name,class,color,display,hide")

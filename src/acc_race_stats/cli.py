@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Container, Iterator
 from datetime import date, datetime
 from functools import cache
 from itertools import islice
@@ -20,13 +20,13 @@ from .events import Event, find_events, useful
 from .gamedata import TRACKS, track_name
 from .i18n import translator
 from .palette import apply_colors
-from .password import ask_password
 from .race import Race
 from .report import write
 from .results import ResultError, Session, load_path, matching_qualifying, parse_name
 from .roster import RosterError, load_grid, load_roster
 from .server import Address, LoginError, Server, ServerError, parse_address
 from .settings import load_server, save_server
+from .terminal import question
 
 PAGE = 10
 KINDS = {"race": {"R"}, "practice": {"FP"}, "qualifying": {"Q"}, "all": {"R", "Q", "FP"}}
@@ -90,9 +90,13 @@ def parse_pairs(items: list[str]) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------- questions
-def ask(question: str, default: str = "") -> str:
-    answer = input(f"{question}{f' (press Enter for {default})' if default else ''}: ").strip()
-    return answer or default
+def ask(text: str, default: str = "", instant: Container[str] = ()) -> str:
+    hint = f" (press Enter for {default})" if default else ""
+    return question(f"{text}{hint}: ", instant=instant).strip() or default
+
+
+def ask_password() -> str:
+    return question("FTP password: ", hidden=True)
 
 
 def ask_until(question: str, parse, default: str = ""):  # type: ignore[no-untyped-def]
@@ -107,8 +111,10 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
     print(f"\n{title}")
     for n, option in enumerate(options, 1):
         print(f"  {n}  {option}")
+    # with up to nine options the number is enough, without Enter
+    keys = [str(n) for n in range(1, len(options) + 1)] if len(options) < 10 else []
     while True:
-        answer = ask("Number", str(default))
+        answer = ask("Number", str(default), keys)
         if answer.isdigit() and 1 <= int(answer) <= len(options):
             return int(answer) - 1
         print(f"  Type a number from 1 to {len(options)}")
@@ -128,7 +134,7 @@ def ask_connection() -> Server:
             if address.port == 21:
                 address.port = ask_until("FTP port", _port, "21")
         address.user = address.user or ask("FTP user")
-        address.password = address.password or ask_password("FTP password: ")
+        address.password = address.password or ask_password()
         print("Connecting...")
         try:
             server = Server(address)
@@ -139,8 +145,9 @@ def ask_connection() -> Server:
                 address.user = ""
             continue
         except ServerError as error:
-            print(f"  {error}\n")
-            address = None
+            print(f"  {error}")
+            if choose("What now?", ["Try again", "Type another address"]) == 1:
+                address = None
             continue
         print("Connected.")
         save_server(address)
@@ -324,23 +331,7 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
         a.color_by = "class"
 
 
-def repair_terminal() -> None:
-    """An interrupted program can leave a terminal where Enter does not end the line or typing is invisible."""
-    if sys.platform == "win32" or not sys.stdin.isatty():
-        return
-    import termios
-
-    try:
-        mode = termios.tcgetattr(sys.stdin)
-        mode[0] = (mode[0] | termios.ICRNL) & ~(termios.INLCR | termios.IGNCR)
-        mode[3] |= termios.ICANON | termios.ECHO | termios.ISIG
-        termios.tcsetattr(sys.stdin, termios.TCSANOW, mode)
-    except termios.error:
-        pass
-
-
 def guided(a: argparse.Namespace) -> list[Path]:
-    repair_terminal()
     print("ACC Race Stats\n" + "=" * 14)
     server = ask_connection()
     try:
@@ -371,7 +362,7 @@ def direct(a: argparse.Namespace) -> list[Path]:
         address = parse_address(a.ftp)
         address.port = a.port or address.port
         address.user = a.user or address.user or ask("FTP user")
-        address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password("FTP password: ")
+        address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password()
         server = Server(address)
         try:
             server.find_results()

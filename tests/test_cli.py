@@ -8,9 +8,9 @@ import pytest
 from acc_race_stats import cli, demo
 from acc_race_stats.divisions import found_categories, preset_map
 from acc_race_stats.events import Event
-from acc_race_stats.password import collect
 from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
 from acc_race_stats.settings import load_server, save_server
+from acc_race_stats.terminal import collect
 
 
 class FakeFtp(threading.Thread):
@@ -19,6 +19,7 @@ class FakeFtp(threading.Thread):
     def __init__(self, files):
         super().__init__(daemon=True)
         self.files = files
+        self.drops = 0
         self.listener = socket.create_server(("127.0.0.1", 0))
         self.port = self.listener.getsockname()[1]
         self.start()
@@ -54,6 +55,11 @@ class FakeFtp(threading.Thread):
                 if command == "MLSD" and argument not in ("/", "/game", "/game/results"):
                     say("550 no such folder")
                     continue
+                if command == "RETR" and self.drops:
+                    self.drops -= 1
+                    stream.close()
+                    connection.shutdown(socket.SHUT_RDWR)
+                    return
                 say("150 here")
                 channel, _ = data.accept()
                 if command == "RETR":
@@ -104,7 +110,7 @@ def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
     answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"])
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
-    monkeypatch.setattr(cli, "ask_password", lambda question: next(passwords))
+    monkeypatch.setattr(cli, "ask_password", lambda: next(passwords))
     cli.main(["--output", str(tmp_path)])
     text = capsys.readouterr().out
     assert "user or password is wrong" in text and "secret" not in text
@@ -173,7 +179,7 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
 
 
 def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
-    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda: "secret")
     for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", ""], ["", "", "", "2", "", ""]):
         replies = iter(answers)
         monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
@@ -190,7 +196,7 @@ def test_broken_settings_are_ignored(settings):
 def test_solo_events_are_hidden(ftp, fast, tmp_path, monkeypatch, capsys):
     replies = iter([f"127.0.0.1:{ftp.port}", "me"])
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
-    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda: "secret")
     with pytest.raises(SystemExit, match="--min-cars 1"):
         cli.main(["--output", str(tmp_path), "--min-cars", "99"])
 
@@ -227,7 +233,7 @@ def test_default_language_is_english(fast, tmp_path):
 def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("127.0.0.1", ftp.port, "me"))
     passwords, replies = iter(["wrong", "secret"]), iter(["1", "1", "1", "2", "", ""])
-    monkeypatch.setattr(cli, "ask_password", lambda question: next(passwords))
+    monkeypatch.setattr(cli, "ask_password", lambda: next(passwords))
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
     assert list(tmp_path.iterdir())
@@ -236,7 +242,7 @@ def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fas
 def test_another_server(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("192.0.2.1", 21, "old"))
     replies = iter(["2", f"127.0.0.1:{ftp.port}", "me", "1", "1", "2", "", ""])
-    monkeypatch.setattr(cli, "ask_password", lambda question: "secret")
+    monkeypatch.setattr(cli, "ask_password", lambda: "secret")
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
     assert load_server() == Address("127.0.0.1", ftp.port, "me")
@@ -253,7 +259,7 @@ def test_another_server(ftp, fast, tmp_path, monkeypatch):
 )
 def test_password_shows_asterisks(keys, password, screen):
     reader, shown = iter(keys), []
-    assert collect(lambda: next(reader), shown.append) == password
+    assert collect(lambda: next(reader), shown.append, hidden=True) == password
     assert "".join(shown) == screen
 
 
@@ -262,3 +268,36 @@ def test_password_can_be_cancelled():
         collect(iter("a\x03").__next__, lambda text: None)
     with pytest.raises(EOFError):
         collect(lambda: "", lambda text: None)
+
+
+@pytest.mark.parametrize(
+    "enter", ["\r", "\n", "\x1bOM", "\x1b[13u", "\x1b[13;1:1u", "\x1b[57414u", "\x1b[27;1;13~"]
+)  # fmt: skip
+def test_every_kind_of_enter(enter):
+    assert collect(iter("ab" + enter).__next__, lambda text: None) == "ab"
+
+
+def test_keypad_and_extended_keys():
+    keys = "\x1bOq\x1b[50u\x1b[57402u\x1b[65;2u\x1b[97;1:3u\x1b[A\r"
+    assert collect(iter(keys).__next__, lambda text: None) == "123A"
+    with pytest.raises(KeyboardInterrupt):
+        collect(iter("\x1b[99;5u").__next__, lambda text: None)
+
+
+def test_lone_escape_does_not_eat_the_next_key():
+    waiting = iter([False])
+    assert collect(iter("\x1bab\r").__next__, lambda text: None, waiting=lambda: next(waiting)) == "ab"
+
+
+def test_menu_number_needs_no_enter():
+    assert collect(iter("2").__next__, lambda text: None, instant=["1", "2"]) == "2"
+
+
+def test_download_survives_a_dropped_connection(ftp):
+    server = Server(Address("127.0.0.1", ftp.port, "me", "secret"))
+    names = server.find_results()
+    ftp.drops = 1
+    assert server.download(names[0])[0].kind == "FP"
+    ftp.drops = 2
+    with pytest.raises(ServerError, match="Could not download"):
+        server.download(names[0])

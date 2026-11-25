@@ -7,26 +7,29 @@ and get PNG charts and a summary for your league chat. No game mods, no telemetr
 
 1. Download this project and unzip it.
 2. Double-click `Run.bat`. The first run installs [uv](https://docs.astral.sh/uv/), which brings Python and everything else.
-3. Answer the questions: server connection first, then track, approximate date and session.
+3. Answer the questions: connect to the server, then pick a number from the list.
 
 On macOS or Linux, with uv installed: `uv run --no-dev acc-race-stats`
 
 ```
 1. Connection (from your game server panel, for example G-Portal)
-FTP address (IP, IP:port, or drag a results folder here): 203.0.113.10:31921
+FTP address (IP, or IP:port): 203.0.113.10:31921
 FTP user: myuser
 FTP password (hidden while you type):
 Connected.
 
-2. What do you want to see?
-Track (empty = any): monza
-Approximate date, like 24/11 (empty = any): 24/11
+2. Pick one (newest first)
+   1  24/11/2026 22:30   Monza              26 cars   Race + Qualifying + Practice
+   2  22/11/2026 21:34   Spa-Francorchamps  18 cars   Race + Qualifying
+   3  21/11/2026 20:10   Monza              12 cars   Practice
+Type the number, or M for older ones [1]: 1
 
-Session
+What do you want to see?
   1  Race
-  2  Free practice
-  3  Qualifying
+  2  Qualifying
+  3  Practice
   4  All of them
+Number [1]:
 
 3. Titles
 League name to highlight (empty = none): My League

@@ -9,10 +9,14 @@ import re
 import subprocess
 import sys
 import unicodedata
+from collections.abc import Iterator
 from datetime import date, datetime
+from functools import cache
+from itertools import islice
 from pathlib import Path
 
 from . import __version__, demo
+from .events import Event, find_events, useful
 from .gamedata import TRACKS, track_name
 from .i18n import translator
 from .palette import apply_colors
@@ -22,6 +26,7 @@ from .results import ResultError, Session, load_path, matching_qualifying, parse
 from .roster import RosterError, load_grid, load_roster
 from .server import Address, LoginError, Server, ServerError, parse_address
 
+PAGE = 10
 KINDS = {"race": {"R"}, "practice": {"FP"}, "qualifying": {"Q"}, "all": {"R", "Q", "FP"}}
 LABEL = {"R": "race", "Q": "qualifying", "FP": "practice"}
 
@@ -107,25 +112,12 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
         print(f"  Type a number from 1 to {len(options)}")
 
 
-def ask_connection() -> Server | list[Session]:
-    """A connected server, or the sessions of a local folder typed instead of the address."""
-    print("\n1. Connection (from your game server panel, for example G-Portal)")
+def ask_connection() -> Server:
+    print("\n1. Connection (copy it from your game server panel, for example G-Portal)")
     address: Address | None = None
     while True:
         if address is None:
-            answer = ask("FTP address (IP, IP:port, or drag a results folder here)")
-            local = Path(answer.strip("\"'").replace("\\ ", " ") if os.name != "nt" else answer.strip('"')).expanduser()
-            if answer and local.exists():
-                try:
-                    return load_path(local)
-                except ResultError as error:
-                    print(f"  {error}")
-                    continue
-            try:
-                address = parse_address(answer)
-            except ServerError as error:
-                print(f"  {error}")
-                continue
+            address = ask_until("FTP address (IP, or IP:port)", parse_address)
             if address.port == 21:
                 address.port = ask_until("FTP port", _port, "21")
         address.user = address.user or ask("FTP user")
@@ -155,10 +147,6 @@ def _port(text: str) -> int:
 def describe(session: Session) -> str:
     when = f"{session.when:%d/%m/%Y %H:%M}" if session.when else session.name
     return f"{when}  {track_name(session.track):<18} {LABEL[session.kind]:<11} {session.cars} cars"
-
-
-def useful(session: Session) -> bool:
-    return bool(session.data.get("laps")) and session.cars > 0
 
 
 def same_weekend(anchor: Session, sessions: list[Session]) -> list[Session]:
@@ -208,16 +196,6 @@ def with_companions(server: Server, anchor: Session) -> list[Session]:
     return [anchor, *near]
 
 
-def pick(sessions: list[Session], what: str) -> Session:
-    """The anchor session: a race for 'all' when there is one, otherwise the only or chosen one."""
-    if what == "all":
-        sessions = [s for s in sessions if s.kind == "R"] or sessions
-    sessions = sorted(sessions, key=lambda s: s.name, reverse=True)[:20]
-    if len(sessions) == 1:
-        return sessions[0]
-    return sessions[choose("Which session?", [describe(s) for s in sessions])]
-
-
 def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace) -> list[Path]:
     roster = load_roster(a.roster) if a.roster else None
     grid = load_grid(a.grid) if a.grid else None
@@ -265,32 +243,63 @@ def open_folder(path: Path) -> None:
 
 
 # ---------------------------------------------------------------- entry points
+def event_line(event: Event) -> str:
+    when = f"{event.main.when:%d/%m/%Y %H:%M}" if event.main.when else ""
+    what = " + ".join(LABEL[k].capitalize() for k in reversed(event.kinds))
+    return f"{when}   {track_name(event.main.track):<18} {event.main.cars:>2} cars   {what}"
+
+
+def choose_event(events: Iterator[Event]) -> Event:
+    """Numbered list, ten at a time."""
+    shown: list[Event] = []
+    while True:
+        page = list(islice(events, PAGE))
+        if not page:
+            if not shown:
+                raise UserError("No session with laps was found.")
+            print("  There are no older sessions.")
+        for number, event in enumerate(page, len(shown) + 1):
+            print(f"  {number:>2}  {event_line(event)}")
+        shown += page
+        more = len(page) == PAGE
+        while True:
+            answer = ask("Type the number" + (", or M for older ones" if more else ""), "1")
+            if answer.isdigit() and 1 <= int(answer) <= len(shown):
+                return shown[int(answer) - 1]
+            if more and answer.lower() == "m":
+                break
+            print(f"  Type a number from 1 to {len(shown)}")
+
+
+def choose_sessions(event: Event) -> list[Session]:
+    if len(event.sessions) == 1:
+        return event.sessions
+    sessions = event.sessions[::-1]
+    options = [LABEL[s.kind].capitalize() for s in sessions] + ["All of them"]
+    picked = choose("What do you want to see?", options)
+    return event.sessions if picked == len(sessions) else [sessions[picked]]
+
+
 def guided(a: argparse.Namespace) -> list[Path]:
     print("ACC Race Stats\n" + "=" * 14)
-    source = ask_connection()
+    server = ask_connection()
     try:
-        if isinstance(source, Server):
-            source.find_results()
-        while True:
-            print("\n2. What do you want to see?")
-            track = ask_until("Track (empty = any)", parse_track)
-            day = ask_until("Approximate date, like 24/11 (empty = any)", parse_day)
-            what = list(KINDS)[choose("Session", ["Race", "Free practice", "Qualifying", "All of them"])]
-            if isinstance(source, Server):
-                found = search_server(source, day, track, KINDS[what])
-            else:
-                found = filter_sessions(source, day, track, KINDS[what])
-            if found:
-                break
-            print("  Nothing found within 3 days of that date on that track. Try again with fewer filters.")
-        anchor = pick(found, what)
-        pool = with_companions(source, anchor) if isinstance(source, Server) else source
+        print("\n2. Pick one (newest first)")
+        names = server.find_results()
+        print("Reading the latest sessions, this can take a minute...")
+
+        @cache
+        def load(name: str) -> Session | None:
+            found = server.try_download(name)
+            return found[0] if found else None
+
+        event = choose_event(find_events(names, load))
     finally:
-        if isinstance(source, Server):
-            source.close()
+        server.close()
+    sessions = choose_sessions(event)
     print("\n3. Titles")
     a.league = a.league or ask("League name to highlight (empty = none)")
-    return generate(same_weekend(anchor, pool) if what == "all" else [anchor], pool, a)
+    return generate(sessions, event.sessions, a)
 
 
 def direct(a: argparse.Namespace) -> list[Path]:

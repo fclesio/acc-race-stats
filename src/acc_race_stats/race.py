@@ -173,7 +173,10 @@ class Race:
                 if item.get("clearedInLap"):
                     target.served.add(item["clearedInLap"])
         present = {d.driver_class for d in self.drivers}
-        self.classes = [c for c in CLASS_ORDER if c in present] + sorted(present - set(CLASS_ORDER))
+        order = list(dict.fromkeys([*(class_map or {}).values(), *CLASS_ORDER]))
+        if set((class_map or {}).values()) <= set(CLASS_ORDER):
+            order = CLASS_ORDER
+        self.classes = [c for c in order if c in present] + sorted(present - set(order))
         for name in self.classes:
             for position, driver in enumerate((d for d in self.drivers if d.driver_class == name), 1):
                 driver.class_position = position

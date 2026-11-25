@@ -6,8 +6,11 @@ import colorsys
 
 from .race import Race
 
-CLASS_COLORS = {"PRO": "#ffffff", "PRO-AM": "#949494", "AM": "#e83323", "SILVER": "#5ab0ff", "NATIONAL": "#c77dff"}
-FALLBACK = ["#f5c542", "#3ddc84", "#ff8a1f", "#4fd6e8", "#ff7eb6"]
+CLASS_COLORS = {
+    "PRO": "#ffffff", "PRO-AM": "#949494", "AM": "#e83323", "PLATINUM": "#7fe3ee", "GOLD": "#f5c542",
+    "SILVER": "#b9c6d8", "BRONZE": "#cd7f32", "NATIONAL": "#c77dff",
+}  # fmt: skip
+FALLBACK = ["#4da3ff", "#ff8a1f", "#3ddc84", "#c77dff", "#f5c542", "#ff5d5d"]
 DISTINCT = [
     "#4da3ff", "#ff8a1f", "#3ddc84", "#ff5d5d", "#c77dff", "#f5c542", "#4fd6e8", "#ff7eb6", "#b5e655", "#c8a27c",
 ]  # fmt: skip

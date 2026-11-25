@@ -62,28 +62,11 @@ CARS = {
 # Console results reuse some ids for other cars; the car group tells them apart.
 CONSOLE_GT3 = {26: "BMW M4 GT3"}
 
-BRANDS = {
-    "Ferrari": "#c8102e",
-    "McLaren": "#ff8000",
-    "Porsche": "#8a6d3b",
-    "BMW": "#1c69d4",
-    "Ford": "#133a7c",
-    "Audi": "#6b6f75",
-    "Lamborghini": "#9c8a1b",
-    "Aston": "#00665e",
-    "Honda": "#cc0000",
-    "Mercedes": "#3a3f44",
-    "Nissan": "#8b0000",
-    "Lexus": "#2b2b2b",
-    "Bentley": "#1f4d3a",
-    "Jaguar": "#2e5e3e",
-    "Alpine": "#0055a4",
-    "Chevrolet": "#d1a000",
-    "Ginetta": "#555",
-    "KTM": "#ff6600",
-    "Maserati": "#0c2340",
-}
-
+# First word of the car name of the brands with a logo in logos/.
+BRANDS = [
+    "Alpine", "Aston", "Audi", "BMW", "Bentley", "Chevrolet", "Ferrari", "Ford", "Ginetta", "Honda", "Jaguar", "KTM",
+    "Lamborghini", "Lexus", "Maserati", "McLaren", "Mercedes", "Nissan", "Porsche",
+]  # fmt: skip
 TRACKS = {
     "barcelona": "Barcelona",
     "brands_hatch": "Brands Hatch",
@@ -113,7 +96,7 @@ TRACKS = {
 }
 
 CUP_CATEGORIES = {0: "PRO", 1: "PRO-AM", 2: "AM", 3: "SILVER", 4: "NATIONAL"}
-CLASS_ORDER = list(CUP_CATEGORIES.values())
+CLASS_ORDER = ["PRO", "PRO-AM", "AM", "PLATINUM", "GOLD", "SILVER", "BRONZE", "NATIONAL"]
 
 
 def car_name(model: int, group: str = "") -> str:
@@ -126,5 +109,5 @@ def track_name(track_id: str) -> str:
     return TRACKS.get(track_id, track_id.replace("_", " ").title())
 
 
-def brand_color(car: str) -> str:
-    return next((color for brand, color in BRANDS.items() if car.startswith(brand)), "#777777")
+def brand(car: str) -> str | None:
+    return next((name for name in BRANDS if car.startswith(name)), None)

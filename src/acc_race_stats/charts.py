@@ -12,10 +12,12 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Patch  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage  # noqa: E402
+from matplotlib.patches import FancyBboxPatch, Patch  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MaxNLocator  # noqa: E402
 
-from .gamedata import brand_color  # noqa: E402
+from .gamedata import brand  # noqa: E402
 from .i18n import Translate  # noqa: E402
 from .race import Driver, Race  # noqa: E402
 
@@ -23,7 +25,14 @@ logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 BG, CARD, LINE, TEXT, MUTED = "#0a0b0d", "#121418", "#262a31", "#f4f5f7", "#8b929c"
 ACCENT = "#f5c542"
 GREEN, RED, PURPLE = "#3ddc84", "#ff5d5d", "#c77dff"
-STINT_COLORS = ["#3a7bd5", "#7ed321", "#ff8a1f", "#c77dff"]
+STINT_COLORS = ["#3a7bd5", "#7ed321", "#ff8a1f", "#c77dff", "#4fd6e8", "#f5c542"]
+# color alone is not enough to tell five crossing lines apart
+TOP5_STYLES: list[tuple[str, Any, str]] = [
+    ("#4da3ff", "-", "o"), ("#ff8a1f", (0, (6, 2)), "s"), ("#3ddc84", (0, (1, 1.2)), "^"),
+    ("#c77dff", (0, (6, 2, 1, 2)), "D"), ("#f5c542", (0, (3, 1, 1, 1, 1, 1)), "v"),
+]  # fmt: skip
+LOGOS = Path(__file__).parent / "logos"
+LOGO_WIDTH = 30  # points, the same for every brand
 MONO = ["Menlo", "Consolas", "DejaVu Sans Mono"]
 MAX_NAME = 22
 STYLE: Any = {
@@ -137,11 +146,18 @@ class Charts:
             if self.mode == "class":
                 box = {"boxstyle": "round,pad=.3", "fc": driver.color, "ec": driver.color}
                 ax.text(0.27, y, driver.driver_class, fontsize=10, va="center", color=ink(driver.color), bbox=box)
-            ax.add_patch(plt.Rectangle((0.36, y - 0.3), 0.005, 0.6, color=brand_color(driver.car)))
-            ax.text(0.372, y, driver.car, fontsize=11.5, va="center")
+            self.logo(ax, 0.374, y, driver.car)
+            ax.text(0.392, y, driver.car, fontsize=11.5, va="center")
             for (x, _), (value, color) in zip(columns[-len(cells(driver)) :], cells(driver), strict=True):
                 ax.text(x, y, value, va="center", family=MONO, color=color)
         self.save(fig, name)
+
+    def logo(self, ax: Any, x: float, y: float, car: str) -> None:
+        name = brand(car)
+        if name:
+            image = plt.imread(LOGOS / f"{name.lower()}.png")
+            box = OffsetImage(image, zoom=LOGO_WIDTH / image.shape[1], dpi_cor=True, interpolation="antialiased")
+            ax.add_artist(AnnotationBbox(box, (x, y), frameon=False, pad=0))
 
     def columns(self, *extra: tuple[float, str]) -> list[tuple[float, str]]:
         middle = [(0.27, self.t("class"))] if self.mode == "class" else []
@@ -239,7 +255,9 @@ class Charts:
         for y, d in enumerate(drivers):
             begin = 0
             for k, end in enumerate([*d.pits, d.laps]):
-                ax.barh(y, end - begin, left=begin, height=0.62, color=STINT_COLORS[k % 4], edgecolor=BG)
+                ax.barh(
+                    y, end - begin, left=begin, height=0.62, color=STINT_COLORS[k % len(STINT_COLORS)], edgecolor=BG
+                )
                 if end - begin >= 2:
                     ax.text((begin + end) / 2, y, str(end - begin), ha="center", va="center", fontsize=10, color=BG)
                 begin = end
@@ -249,6 +267,12 @@ class Charts:
         ax.set_ylim(len(drivers) - 0.4, -0.6)
         ax.set_xlabel(self.t("lap"))
         ax.grid(axis="x", alpha=0.5)
+        most = min(len(STINT_COLORS), max(len(d.pits) + 1 for d in drivers))
+        handles: list[Any] = [Patch(color=STINT_COLORS[k], label=self.t("stint", n=k + 1)) for k in range(most)]
+        if any(d.served for d in drivers):
+            mark = Line2D([], [], marker="X", ls="", ms=10, color=RED, mec=BG, label=self.t("served"))
+            handles.append(mark)
+        fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.58, 0), ncol=7, fontsize=11, handlelength=1)
         self.legend(fig)
         self.save(fig, "05-stints")
 
@@ -258,8 +282,7 @@ class Charts:
             return
         fig, ax = self.figure(self.t("top5"), self.t("clean_sub"), 18, 10)
         fig.subplots_adjust(left=0.07, right=0.97)
-        palette = ["#4da3ff", "#ff8a1f", "#3ddc84", "#c77dff", "#f5c542"]
-        for d, fixed in zip(drivers, palette, strict=False):
+        for d, (fixed, dash, marker) in zip(drivers, TOP5_STYLES, strict=False):
             # in class mode several of the top 5 share a color, so the lines get their own
             color = fixed if self.mode == "class" else d.color
             label = f"P{d.position} {short(d.name)} · {d.car}"
@@ -267,9 +290,10 @@ class Charts:
                 [n for n, _ in d.clean],
                 [v / 1000 for _, v in d.clean],
                 color=color,
-                lw=2,
-                marker="o",
-                ms=4,
+                lw=2.2,
+                ls=dash,
+                marker=marker,
+                ms=6,
                 label=label,
             )
         ax.yaxis.set_major_formatter(self.laptime)
@@ -277,7 +301,7 @@ class Charts:
         ax.set_xlabel(self.t("lap"))
         ax.set_ylabel(self.t("lap_time"))
         ax.grid(alpha=0.6)
-        ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.06), ncol=5, fontsize=10)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.07), ncol=5, fontsize=10, handlelength=4)
         self.save(fig, "06-top5-pace")
 
     def by_class(self) -> None:
@@ -311,12 +335,12 @@ class Charts:
             self.t("battles"),
             self.t("battles_sub"),
             18,
-            3.2 * len(pairs) + 3,
+            3.6 * len(pairs) + 3,
             nrows=len(pairs),
             sharex=True,
             squeeze=False,
         )
-        fig.subplots_adjust(left=0.06, right=0.97, hspace=0.5)
+        fig.subplots_adjust(left=0.06, right=0.97, hspace=0.75)
         for ax, (a, b, count) in zip(axes[:, 0], pairs, strict=True):
             skip = {lap + k for d in (a, b) for lap in d.stops for k in (-1, 0, 1)}
             laps = range(1, min(len(a.elapsed), len(b.elapsed)) + 1)
@@ -328,7 +352,10 @@ class Charts:
             title = f"P{a.position} {short(a.name)}  ×  P{b.position} {short(b.name)}   ·   "
             ax.set_title(title + self.t("battle_laps", n=count), loc="left", fontsize=14)
             ax.grid(alpha=0.5)
-        axes[-1, 0].set_xlabel(self.t("lap"))
+            ax.tick_params(labelbottom=True)
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.set_xlabel(self.t("lap"))
+            ax.set_ylabel(self.t("seconds"))
         self.save(fig, "08-battles")
 
     def pits(self) -> None:
@@ -452,15 +479,31 @@ class Charts:
             return
         fig, ax = self.figure(self.t("spread"), self.t("spread_sub"), 18, max(6, 0.45 * len(rows) + 3))
         fig.subplots_adjust(left=0.18, right=0.96)
-        for y, d in enumerate(rows):
-            line = {"color": d.color}
-            ax.boxplot(
-                [[v / 1000 for _, v in d.clean]], orientation="horizontal", positions=[y], widths=0.6, showfliers=False,
-                patch_artist=True, manage_ticks=False, whiskerprops=line, capprops=line,
-                boxprops={"facecolor": d.color, "edgecolor": d.color}, medianprops={"color": BG, "lw": 2.5},
-            )  # fmt: skip
-        self.names(ax, rows, [f"P{d.position}  {short(d.name)}" for d in rows])
         ax.set_ylim(len(rows) - 0.4, -0.6)
+        stats = []
+        for d in rows:
+            times = sorted(v / 1000 for _, v in d.clean)
+            low, middle, high = statistics.quantiles(times, n=4, method="inclusive")
+            reach = 1.5 * (high - low)
+            first, last = next(v for v in times if v >= low - reach), max(v for v in times if v <= high + reach)
+            stats.append((first, low, middle, high, last))
+        left, right = min(s[0] for s in stats), max(s[4] for s in stats)
+        margin = (right - left) * 0.03 or 1
+        ax.set_xlim(left - margin, right + margin)
+        # data units per inch, so the corners are round on screen
+        box = ax.get_position()
+        across = (right - left + 2 * margin) / (box.width * fig.get_figwidth())
+        down = (len(rows) + 0.2) / (box.height * fig.get_figheight())
+        for y, (d, (first, low, middle, high, last)) in enumerate(zip(rows, stats, strict=True)):
+            ax.plot([first, last], [y, y], color=d.color, lw=2.5, solid_capstyle="round")
+            radius = min(0.29 / down * across, (high - low) / 2)
+            shape = f"round,pad=0,rounding_size={radius}"
+            ax.add_patch(
+                FancyBboxPatch((low, y - 0.3), high - low, 0.6, boxstyle=shape, mutation_aspect=down / across,
+                               fc=d.color, lw=0, zorder=3)
+            )  # fmt: skip
+            ax.plot([middle, middle], [y - 0.2, y + 0.2], color=BG, lw=3, solid_capstyle="round", zorder=4)
+        self.names(ax, rows, [f"P{d.position}  {short(d.name)}" for d in rows])
         ax.xaxis.set_major_formatter(self.laptime)
         ax.set_xlabel(self.t("lap_time"))
         ax.grid(axis="x", alpha=0.5)

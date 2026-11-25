@@ -1,4 +1,4 @@
-"""Text shown in charts and reports. Brazilian Portuguese is the default; code and CLI are in English."""
+"""Text shown in charts and reports, in English (default) and Brazilian Portuguese."""
 
 from __future__ import annotations
 
@@ -46,9 +46,11 @@ TEXT: dict[str, tuple[str, str]] = {
     ),
     "stints": ("Stints e paradas", "Stints and pit stops"),
     "stints_sub": (
-        "cada barra é um stint entre paradas · X = punição cumprida",
-        "each bar is a stint between stops · X = penalty served",
+        "cada barra é um stint entre paradas no box",
+        "each bar is a stint between pit stops",
     ),
+    "stint": ("{n}º stint", "Stint {n}"),
+    "served": ("punição cumprida", "penalty served"),
     "top5": ("Ritmo do top 5", "Top 5 pace"),
     "clean_sub": ("voltas limpas, sem largada e paradas", "clean laps, without start and stops"),
     "by_class": ("Ritmo por classe", "Pace by class"),
@@ -118,7 +120,7 @@ TEXT: dict[str, tuple[str, str]] = {
 
 
 def translator(lang: str) -> Translate:
-    index = 1 if lang == "en" else 0
+    index = 0 if lang == "pt-br" else 1
 
     def translate(key: str, **values: object) -> str:
         return TEXT[key][index].format(**values)

@@ -1,0 +1,32 @@
+name: Bug
+description: Something does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include passwords, server addresses or result files with real players.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: screen
+    attributes:
+      label: Text on the screen
+      render: text
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 0.1.0
+    validations:
+      required: true

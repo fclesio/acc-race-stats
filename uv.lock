@@ -25,7 +25,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "matplotlib", specifier = ">=3.9" }]
+requires-dist = [{ name = "matplotlib", specifier = ">=3.10" }]
 
 [package.metadata.requires-dev]
 dev = [

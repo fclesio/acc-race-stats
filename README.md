@@ -36,8 +36,26 @@ What do you want to see?
   4  All of them
 Number [1]:
 
-3. Titles
+3. Categories
+Categories saved in the file: PRO (10), SILVER (9), AM (7)
+
+Does your league use categories?
+  1  Yes
+  2  No, one color per driver
+Number [1]: 1
+
+Which ones?
+  1  Pro / Pro-Am / Am
+  2  Gold / Silver / Bronze
+  ...
+
+4. Charts
 League name to highlight (empty = none): My League
+
+Language of the charts
+  1  English
+  2  Português (Brasil)
+Number [1]:
 ```
 
 Results go to `reports/`: `charts/`, `summary.txt` and `race.json`.
@@ -46,7 +64,9 @@ Try it without a server: `make demo`
 
 ## Options
 
-Windows: `make --lang en`. macOS and Linux: `make ARGS="--lang en"`.
+`make en` and `make pt-br` set the chart language without asking; `make` asks (Enter = English).
+
+Other options on Windows: `make --lang pt-br`. On macOS and Linux: `make ARGS="--lang pt-br"`.
 
 | Option | What it does |
 |---|---|
@@ -55,7 +75,8 @@ Windows: `make --lang en`. macOS and Linux: `make ARGS="--lang en"`.
 | `--track` `--date` `--session race\|practice\|qualifying\|all` | which session; the date matches 3 days either way |
 | `--min-cars N` | hide events with fewer cars in the questions (default 2) |
 | `--list` | only list the sessions found |
-| `--lang pt-br\|en` | chart language (default `pt-br`) |
+| `--lang en\|pt-br` | chart language (default `en`) |
+| `--divisions none\|game\|pro\|metal\|fia\|numbers` | league categories; `none` is one color per driver |
 | `--color-by auto\|class\|driver` | `auto` uses classes when the race has more than one |
 | `--class-map SILVER=PRO-AM` | rename the game classes |
 | `--class-color PRO=#ffffff` | change class colors |
@@ -100,4 +121,5 @@ make check
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). License: MIT.
 
-This project is not affiliated with Kunos Simulazioni.
+This project is not affiliated with Kunos Simulazioni. The brand logos come from [Simple Icons](https://simpleicons.org)
+(CC0); they are trademarks of their owners and only identify the cars.

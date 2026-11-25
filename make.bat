@@ -17,6 +17,10 @@ if errorlevel 1 (
 )
 if /i "%~1"=="demo" (
   uv run --quiet --no-dev acc-race-stats --demo --session all
+) else if /i "%~1"=="en" (
+  uv run --quiet --no-dev acc-race-stats --lang en
+) else if /i "%~1"=="pt-br" (
+  uv run --quiet --no-dev acc-race-stats --lang pt-br
 ) else if /i "%~1"=="test" (
   uv run --quiet pytest
 ) else (

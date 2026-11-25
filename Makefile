@@ -3,10 +3,16 @@ export PATH := $(HOME)/.local/bin:$(PATH)
 ARGS ?=
 
 .DEFAULT_GOAL := run
-.PHONY: run demo test check setup
+.PHONY: run en pt-br demo test check setup
 
 run: setup  ## ask everything step by step
 	@uv run --quiet --no-dev acc-race-stats $(ARGS)
+
+en: setup  ## charts in English
+	@uv run --quiet --no-dev acc-race-stats --lang en $(ARGS)
+
+pt-br: setup  ## charts in Portuguese
+	@uv run --quiet --no-dev acc-race-stats --lang pt-br $(ARGS)
 
 demo: setup  ## invented race weekend, no server needed
 	@uv run --quiet --no-dev acc-race-stats --demo --session all $(ARGS)

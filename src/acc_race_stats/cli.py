@@ -25,6 +25,7 @@ from .report import write
 from .results import ResultError, Session, load_path, matching_qualifying, parse_name
 from .roster import RosterError, load_grid, load_roster
 from .server import Address, LoginError, Server, ServerError, parse_address
+from .settings import load_server, save_server
 
 PAGE = 10
 KINDS = {"race": {"R"}, "practice": {"FP"}, "qualifying": {"Q"}, "all": {"R", "Q", "FP"}}
@@ -114,13 +115,17 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
 
 def ask_connection() -> Server:
     print("\n1. Connection (copy it from your game server panel, for example G-Portal)")
+    saved = load_server()
+    if saved:
+        print("Press Enter to use the same server as last time.")
     address: Address | None = None
     while True:
         if address is None:
-            address = ask_until("FTP address (IP, or IP:port)", parse_address)
-            if address.port == 21:
+            last = f"{saved.host}:{saved.port}" if saved else ""
+            address = ask_until("FTP address (IP, or IP:port)", parse_address, last)
+            if address.port == 21 and (saved is None or address.host != saved.host):
                 address.port = ask_until("FTP port", _port, "21")
-        address.user = address.user or ask("FTP user")
+        address.user = address.user or ask("FTP user", saved.user if saved else "")
         address.password = address.password or getpass.getpass("FTP password (hidden while you type): ")
         print("Connecting...")
         try:
@@ -134,6 +139,7 @@ def ask_connection() -> Server:
             address = None
             continue
         print("Connected.")
+        save_server(address)
         return server
 
 
@@ -246,22 +252,22 @@ def open_folder(path: Path) -> None:
 def event_line(event: Event) -> str:
     when = f"{event.main.when:%d/%m/%Y %H:%M}" if event.main.when else ""
     what = " + ".join(LABEL[k].capitalize() for k in reversed(event.kinds))
-    return f"{when}   {track_name(event.main.track):<18} {event.main.cars:>2} cars   {what}"
+    return f"{when}   {track_name(event.main.track):<18} {event.cars:>2} cars   {what}"
 
 
 def choose_event(events: Iterator[Event]) -> Event:
     """Numbered list, ten at a time."""
     shown: list[Event] = []
     while True:
-        page = list(islice(events, PAGE))
-        if not page:
-            if not shown:
-                raise UserError("No session with laps was found.")
+        start = len(shown)
+        for event in islice(events, PAGE):
+            shown.append(event)
+            print(f"  {len(shown):>2}  {event_line(event)}", flush=True)
+        if not shown:
+            raise UserError("No session with enough cars was found. Use --min-cars 1 to see solo sessions.")
+        if len(shown) == start:
             print("  There are no older sessions.")
-        for number, event in enumerate(page, len(shown) + 1):
-            print(f"  {number:>2}  {event_line(event)}")
-        shown += page
-        more = len(page) == PAGE
+        more = len(shown) - start == PAGE
         while True:
             answer = ask("Type the number" + (", or M for older ones" if more else ""), "1")
             if answer.isdigit() and 1 <= int(answer) <= len(shown):
@@ -293,7 +299,7 @@ def guided(a: argparse.Namespace) -> list[Path]:
             found = server.try_download(name)
             return found[0] if found else None
 
-        event = choose_event(find_events(names, load))
+        event = choose_event(e for e in find_events(names, load) if e.cars >= a.min_cars)
     finally:
         server.close()
     sessions = choose_sessions(event)
@@ -351,6 +357,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--track", default="", help="only this track (name or part of it)")
     p.add_argument("--date", default="", help="within 3 days of this date: 24/11, 24/11/2026 or 2026-11-24")
     p.add_argument("--session", choices=list(KINDS), default="race", help="what to draw (default: race)")
+    p.add_argument("--min-cars", type=int, default=2, help="hide events with fewer cars in the questions (default: 2)")
     p.add_argument("--list", action="store_true", help="only list the sessions found")
     p.add_argument("--lang", choices=["pt-br", "en"], default="pt-br", help="language of the charts (default: pt-br)")
     p.add_argument("--color-by", choices=["auto", "class", "driver"], default="auto",

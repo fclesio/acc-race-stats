@@ -46,6 +46,7 @@ Try it without a server: `uv run acc-race-stats --demo --session all`
 | `path` | result file, or folder with result files |
 | `--ftp ADDRESS --port N --user U` | server; the password is asked, or read from `ACC_FTP_PASSWORD` |
 | `--track` `--date` `--session race\|practice\|qualifying\|all` | which session; the date matches 3 days either way |
+| `--min-cars N` | hide events with fewer cars in the questions (default 2) |
 | `--list` | only list the sessions found |
 | `--lang pt-br\|en` | chart language (default `pt-br`) |
 | `--color-by auto\|class\|driver` | `auto` uses classes when the race has more than one |
@@ -80,7 +81,7 @@ order in which the laps were written. Rebuilt laps are listed at the end of the 
 
 ## Privacy
 
-The FTP password is never saved. Plain FTP sends it unencrypted, so do not reuse it elsewhere. Player ids are never
+The address, port and user of the last server are remembered on your computer. The FTP password is never saved. Plain FTP sends it unencrypted, so do not reuse it elsewhere. Player ids are never
 written to the output.
 
 ## Development

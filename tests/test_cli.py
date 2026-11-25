@@ -8,6 +8,7 @@ import pytest
 from acc_race_stats import cli, demo
 from acc_race_stats.events import Event
 from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
+from acc_race_stats.settings import load_server
 
 
 class FakeFtp(threading.Thread):
@@ -75,6 +76,14 @@ def ftp():
     server = FakeFtp(files)
     yield server
     server.listener.close()
+
+
+@pytest.fixture(autouse=True)
+def settings(tmp_path_factory, monkeypatch):
+    folder = tmp_path_factory.mktemp("settings")
+    monkeypatch.setenv("APPDATA", str(folder))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(folder))
+    return folder / "acc-race-stats" / "server.json"
 
 
 @pytest.fixture
@@ -159,3 +168,26 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
     assert cli.choose_event(iter(events)) is events[11]
     assert "   Monza" in capsys.readouterr().out
+
+
+def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
+    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", ""], ["", "", "", "", ""]):
+        replies = iter(answers)
+        monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
+        cli.main(["--output", str(tmp_path)])
+    assert json.loads(settings.read_text()) == {"host": "127.0.0.1", "port": ftp.port, "user": "me"}
+
+
+def test_broken_settings_are_ignored(settings):
+    settings.parent.mkdir()
+    settings.write_text("[]")
+    assert load_server() is None
+
+
+def test_solo_events_are_hidden(ftp, fast, tmp_path, monkeypatch, capsys):
+    replies = iter([f"127.0.0.1:{ftp.port}", "me"])
+    monkeypatch.setattr("builtins.input", lambda question: next(replies))
+    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    with pytest.raises(SystemExit, match="--min-cars 1"):
+        cli.main(["--output", str(tmp_path), "--min-cars", "99"])

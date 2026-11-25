@@ -24,8 +24,17 @@ class Event:
         return self.sessions[-1]
 
     @property
+    def cars(self) -> int:
+        """Most cars that completed a lap in any session of the event."""
+        return max(running_cars(s) for s in self.sessions)
+
+    @property
     def kinds(self) -> list[str]:
         return [s.kind for s in self.sessions]
+
+
+def running_cars(session: Session) -> int:
+    return len({lap["carId"] for lap in session.data.get("laps") or []})
 
 
 def useful(session: Session | None) -> bool:

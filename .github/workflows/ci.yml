@@ -1,5 +1,8 @@
 name: ci
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -8,12 +11,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.13"]
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: ${{ matrix.python }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync
+      - run: uv sync --locked
       - run: uv run ruff check .
+      - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
       - name: Launcher on Windows
@@ -23,3 +30,26 @@ jobs:
       - name: Launcher on macOS and Linux
         if: runner.os != 'Windows'
         run: make ARGS="--demo --no-open"
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - name: The installed package works
+        run: uv run --isolated --no-project --with dist/*.whl acc-race-stats --demo --no-open --output out
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Conventional Commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          types='feat|fix|docs|refactor|perf|test|build|ci|style|chore|revert'
+          bad=$(git log --no-merges --format=%s "$BASE..$HEAD" | grep -vE "^($types)(\([a-z0-9-]+\))?!?: .+" || true)
+          if [ -n "$bad" ]; then printf 'Not conventional:\n%s\n' "$bad"; exit 1; fi

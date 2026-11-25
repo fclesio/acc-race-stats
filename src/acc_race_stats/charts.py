@@ -426,7 +426,8 @@ class Charts:
     def order(self) -> None:
         """Own color for every driver (cars of a class run together); the dash and the dots show the class."""
         race, drivers = self.race, self.race.drivers
-        fig, ax = self.figure(self.t("order"), self.t("order_sub"), 20, max(8, 0.5 * len(drivers) + 3))
+        sub = self.t("order_sub") + (self.t("order_class") if self.mode == "class" else "")
+        fig, ax = self.figure(self.t("order"), sub, 20, max(8, 0.5 * len(drivers) + 3))
         fig.subplots_adjust(left=0.16, right=0.83)
         by_class = self.mode == "class"
         dashes: list[Any] = ["-", (0, (5, 1.5)), (0, (1.2, 1)), (0, (5, 1.5, 1, 1.5))]
@@ -449,8 +450,8 @@ class Charts:
                         color=ink(d.color), zorder=201)  # fmt: skip
             ax.text(xs[0] - 0.55, ys[0], short(d.name), ha="right", va="center", fontsize=11, color=color)
             if d.retired:
-                ax.text(xs[-1] + 0.5, ys[-1], f"{short(d.name)} ({self.t('retired')})", va="center", fontsize=9,
-                        color=color, zorder=202, bbox={"fc": BG, "ec": "none", "pad": 1})  # fmt: skip
+                ax.text(xs[-1], ys[-1] + 0.62, self.t("retired"), ha="center", va="center", fontsize=9, color=color,
+                        zorder=202)  # fmt: skip
             elif d.laps < race.total_laps:
                 ax.plot([xs[-1], race.total_laps], [ys[-1], d.position], color=color, lw=0.8, alpha=0.35, zorder=1)
             label = f"P{d.position} {short(d.name)}"

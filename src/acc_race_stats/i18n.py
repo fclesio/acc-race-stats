@@ -89,9 +89,10 @@ TEXT: dict[str, tuple[str, str]] = {
     "best_sub": ("diferença para a volta mais rápida", "gap to the fastest lap"),
     "order": ("Posições volta a volta", "Lap by lap positions"),
     "order_sub": (
-        "uma cor por piloto · à esquerda o grid, à direita o resultado final (com punições) · círculo na cor da classe",
-        "one color per driver · grid on the left, final result (with penalties) on the right · circle in the class color",
+        "uma cor por piloto · à esquerda o grid, à direita o resultado final (com punições)",
+        "one color per driver · grid on the left, final result (with penalties) on the right",
     ),
+    "order_class": (" · círculo na cor da classe", " · circle in the class color"),
     "ideal": ("Volta ideal", "Ideal lap"),
     "ideal_sub": (
         "soma dos melhores setores em voltas válidas · Δ = melhor volta − ideal",

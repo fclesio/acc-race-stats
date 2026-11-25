@@ -14,11 +14,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage  # noqa: E402
-from matplotlib.patches import FancyBboxPatch, Patch  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MaxNLocator  # noqa: E402
 
 from .gamedata import brand  # noqa: E402
 from .i18n import Translate  # noqa: E402
+from .palette import driver_palette  # noqa: E402
 from .race import Driver, Race  # noqa: E402
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
@@ -32,7 +33,7 @@ TOP5_STYLES: list[tuple[str, Any, str]] = [
     ("#c77dff", (0, (6, 2, 1, 2)), "D"), ("#f5c542", (0, (3, 1, 1, 1, 1, 1)), "v"),
 ]  # fmt: skip
 LOGOS = Path(__file__).parent / "logos"
-LOGO_WIDTH = 30  # points, the same for every brand
+LOGO_WIDTH = 34  # points, the same for every brand
 MONO = ["Menlo", "Consolas", "DejaVu Sans Mono"]
 MAX_NAME = 22
 STYLE: Any = {
@@ -53,6 +54,11 @@ def lap_text(milliseconds: float) -> str:
 
 def short(name: str) -> str:
     return name if len(name) <= MAX_NAME else name[: MAX_NAME - 1] + "…"
+
+
+def whole(ax: Any) -> None:
+    """Laps and positions have no decimals."""
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True, min_n_ticks=1))
 
 
 def ink(color: str) -> str:
@@ -108,7 +114,7 @@ class Charts:
 
     def bars(
         self, name: str, title: str, sub: str, drivers: Sequence[Driver], value: Callable[[Driver], float],
-        text: Callable[[Driver], str], axis: str, room: float = 1.3,
+        text: Callable[[Driver], str], axis: str, room: float = 1.3, count: bool = False,
     ) -> None:  # fmt: skip
         if not drivers:
             return
@@ -122,6 +128,8 @@ class Charts:
         self.names(ax, drivers, [f"P{d.position}  {short(d.name)}" for d in drivers])
         ax.set_ylim(len(drivers) - 0.4, -0.6)
         ax.set_xlim(0, top * room)
+        if count:
+            whole(ax)
         ax.set_xlabel(axis)
         ax.grid(axis="x", alpha=0.5)
         self.legend(fig)
@@ -154,8 +162,8 @@ class Charts:
                     color=ink(driver.color),
                     bbox=box,
                 )
-            self.logo(ax, 0.374, y, driver.car)
-            ax.text(0.392, y, driver.car, fontsize=11.5, va="center")
+            self.logo(ax, 0.376, y, driver.car)
+            ax.text(0.398, y, driver.car, fontsize=11.5, va="center")
             for (x, _), (value, color) in zip(columns[-len(cells(driver)) :], cells(driver), strict=True):
                 ax.text(x, y, value, va="center", family=MONO, color=color)
         self.save(fig, name)
@@ -213,6 +221,7 @@ class Charts:
         ax.set_xlim(-limit, limit)
         ax.axvline(0, color=MUTED, lw=1)
         ax.grid(axis="x")
+        whole(ax)
         ax.set_xlabel(self.t("positions"))
         self.legend(fig)
         self.save(fig, name)
@@ -250,6 +259,7 @@ class Charts:
             )
         ax.set_xlim(0, race.total_laps)
         ax.axhline(0, color=MUTED, lw=1, ls="--")
+        whole(ax)
         ax.set_xlabel(self.t("lap") + "  ·  " + self.t("trace_note"))
         ax.set_ylabel(self.t("seconds"))
         ax.grid(alpha=0.6)
@@ -273,6 +283,7 @@ class Charts:
                 ax.scatter(lap - 0.5, y, marker="X", s=90, color=RED, edgecolor=BG, zorder=4)
         self.names(ax, drivers, [f"P{d.position}  {short(d.name)}" for d in drivers])
         ax.set_ylim(len(drivers) - 0.4, -0.6)
+        whole(ax)
         ax.set_xlabel(self.t("lap"))
         ax.grid(axis="x", alpha=0.5)
         most = min(len(STINT_COLORS), max(len(d.pits) + 1 for d in drivers))
@@ -305,7 +316,7 @@ class Charts:
                 label=label,
             )
         ax.yaxis.set_major_formatter(self.laptime)
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        whole(ax)
         ax.set_xlabel(self.t("lap"))
         ax.set_ylabel(self.t("lap_time"))
         ax.grid(alpha=0.6)
@@ -333,6 +344,7 @@ class Charts:
             if ax.lines:
                 ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.07), fontsize=10.5)
             ax.grid(alpha=0.6)
+            whole(ax)
             ax.set_xlabel(self.t("lap"))
         axes[0].yaxis.set_major_formatter(self.laptime)
         self.save(fig, "07-pace-by-class")
@@ -363,7 +375,7 @@ class Charts:
             ax.set_title(title + self.t("battle_laps", n=count), loc="left", fontsize=14)
             ax.grid(alpha=0.5)
             ax.tick_params(labelbottom=True)
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            whole(ax)
             ax.set_xlabel(self.t("lap"))
             ax.set_ylabel(self.t("seconds"))
         self.save(fig, "08-battles")
@@ -412,25 +424,54 @@ class Charts:
         self.save(fig, "09-pit-stops")
 
     def order(self) -> None:
+        """Own color for every driver (cars of a class run together); the dash and the dots show the class."""
         race, drivers = self.race, self.race.drivers
-        fig, ax = self.figure(self.t("order"), self.t("order_sub"), 18, max(7, 0.4 * len(drivers) + 3))
-        fig.subplots_adjust(left=0.05, right=0.82)
-        for d in reversed(drivers):
+        fig, ax = self.figure(self.t("order"), self.t("order_sub"), 20, max(8, 0.5 * len(drivers) + 3))
+        fig.subplots_adjust(left=0.16, right=0.83)
+        by_class = self.mode == "class"
+        dashes: list[Any] = ["-", (0, (5, 1.5)), (0, (1.2, 1)), (0, (5, 1.5, 1, 1.5))]
+        # consecutive finishers get distant colors
+        for d, own in zip(drivers, driver_palette(len(drivers)), strict=True):
+            color = own if by_class else d.color
+            dash = dashes[race.classes.index(d.driver_class) % len(dashes)] if by_class else "-"
             points = [(0, d.grid)] if d.grid else []
             points += [(n, p) for n in range(1, len(d.elapsed) + 1) if (p := race.position_at(d, n))]
-            top = d.position <= 10
-            ax.plot(*zip(*points, strict=True), color=d.color, lw=2.2 if top else 1.2, alpha=1 if top else 0.6)
-            ax.scatter(*points[-1], s=18, color=d.color, zorder=3)
+            if d.laps >= race.total_laps:
+                points[-1] = (points[-1][0], d.position)  # penalties after the race change the order
+            xs, ys = zip(*points, strict=True)
+            z = 100 - d.position
+            # the dark edge keeps crossing lines apart
+            ax.plot(xs, ys, color=BG, lw=5.5, zorder=z)
+            ax.plot(xs, ys, color=color, lw=2.4, ls=dash, zorder=z, solid_joinstyle="round")
+            for x, y in (points[0], points[-1]):
+                ax.scatter(x, y, s=210, color=d.color, edgecolor=color, linewidth=2, zorder=200)
+                ax.text(x, y, str(y), ha="center", va="center_baseline", fontsize=8.5, fontweight="bold",
+                        color=ink(d.color), zorder=201)  # fmt: skip
+            ax.text(xs[0] - 0.55, ys[0], short(d.name), ha="right", va="center", fontsize=11, color=color)
+            if d.retired:
+                ax.text(xs[-1] + 0.5, ys[-1], f"{short(d.name)} ({self.t('retired')})", va="center", fontsize=9,
+                        color=color, zorder=202, bbox={"fc": BG, "ec": "none", "pad": 1})  # fmt: skip
+            elif d.laps < race.total_laps:
+                ax.plot([xs[-1], race.total_laps], [ys[-1], d.position], color=color, lw=0.8, alpha=0.35, zorder=1)
             label = f"P{d.position} {short(d.name)}"
-            ax.text(race.total_laps + 0.4, d.position, label, va="center", fontsize=10.5, color=d.color)
+            ax.text(race.total_laps + 0.6, d.position, label, va="center", fontsize=11, color=color)
         most = max(len(drivers), *(d.grid or 0 for d in drivers))
         ax.set_ylim(most + 0.7, 0.3)
-        ax.set_yticks(range(1, most + 1))
-        ax.set_xlim(-0.3, race.total_laps + 0.2)
+        ax.set_yticks([])
+        ax.spines["left"].set_visible(False)
+        ax.set_xlim(-0.35, race.total_laps + 0.35)
+        whole(ax)
         ax.set_xlabel(self.t("lap"))
-        ax.set_ylabel(self.t("position"))
-        ax.grid(alpha=0.4)
-        self.legend(fig)
+        ax.grid(axis="x", alpha=0.35)
+        if by_class:
+            handles = []
+            for name, dash in zip(race.classes, dashes * 3, strict=False):
+                fill = next(d.color for d in drivers if d.driver_class == name)
+                handles.append(
+                    Line2D([], [], color=MUTED, ls=dash, lw=2.4, marker="o", ms=10, mfc=fill, mec=fill,
+                           label=self.t("class_name", name=name))
+                )  # fmt: skip
+            fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(0.03, 0), ncol=5, fontsize=11, handlelength=5)
         self.save(fig, "12-lap-by-lap")
 
     # ------------------------------------------------------------ charts for any session
@@ -458,7 +499,7 @@ class Charts:
         rows = sorted(self.race.drivers, key=lambda d: -d.invalid)
         if any(d.invalid for d in rows):
             self.bars("14-invalid-laps", self.t("limits"), self.t("limits_sub"), rows, lambda d: d.invalid,
-                      lambda d: str(d.invalid), self.t("limits"), 1.1)  # fmt: skip
+                      lambda d: str(d.invalid), self.t("limits"), 1.1, True)  # fmt: skip
 
     def sectors(self) -> None:
         found = [(d, s) for d in self.race.drivers if (s := d.sectors)]
@@ -489,30 +530,14 @@ class Charts:
             return
         fig, ax = self.figure(self.t("spread"), self.t("spread_sub"), 18, max(6, 0.45 * len(rows) + 3))
         fig.subplots_adjust(left=0.18, right=0.96)
-        ax.set_ylim(len(rows) - 0.4, -0.6)
-        stats = []
-        for d in rows:
-            times = sorted(v / 1000 for _, v in d.clean)
-            low, middle, high = statistics.quantiles(times, n=4, method="inclusive")
-            reach = 1.5 * (high - low)
-            first, last = next(v for v in times if v >= low - reach), max(v for v in times if v <= high + reach)
-            stats.append((first, low, middle, high, last))
-        left, right = min(s[0] for s in stats), max(s[4] for s in stats)
-        margin = (right - left) * 0.03 or 1
-        ax.set_xlim(left - margin, right + margin)
-        # data units per inch, so the corners are round on screen
-        box = ax.get_position()
-        across = (right - left + 2 * margin) / (box.width * fig.get_figwidth())
-        down = (len(rows) + 0.2) / (box.height * fig.get_figheight())
-        for y, (d, (first, low, middle, high, last)) in enumerate(zip(rows, stats, strict=True)):
-            ax.plot([first, last], [y, y], color=d.color, lw=2.5, solid_capstyle="round")
-            radius = min(0.29 / down * across, (high - low) / 2)
-            shape = f"round,pad=0,rounding_size={radius}"
-            ax.add_patch(
-                FancyBboxPatch((low, y - 0.3), high - low, 0.6, boxstyle=shape, mutation_aspect=down / across,
-                               fc=d.color, lw=0, zorder=3)
+        for y, d in enumerate(rows):
+            line = {"color": d.color, "lw": 1.6}
+            ax.boxplot(
+                [[v / 1000 for _, v in d.clean]], orientation="horizontal", positions=[y], widths=0.6, showfliers=False,
+                patch_artist=True, manage_ticks=False, whiskerprops=line, capprops=line,
+                boxprops={"facecolor": d.color, "edgecolor": d.color}, medianprops={"color": BG, "lw": 2.5},
             )  # fmt: skip
-            ax.plot([middle, middle], [y - 0.2, y + 0.2], color=BG, lw=3, solid_capstyle="round", zorder=4)
+        ax.set_ylim(len(rows) - 0.4, -0.6)
         self.names(ax, rows, [f"P{d.position}  {short(d.name)}" for d in rows])
         ax.xaxis.set_major_formatter(self.laptime)
         ax.set_xlabel(self.t("lap_time"))
@@ -532,7 +557,9 @@ class Charts:
 
     def laps_done(self) -> None:
         rows = sorted(self.race.drivers, key=lambda d: -d.laps)
-        self.bars("02-laps", self.t("laps_done"), "", rows, lambda d: d.laps, lambda d: str(d.laps), self.t("lap"), 1.1)
+        self.bars(
+            "02-laps", self.t("laps_done"), "", rows, lambda d: d.laps, lambda d: str(d.laps), self.t("lap"), 1.1, True
+        )
 
     def draw(self) -> list[Path]:
         if self.race.kind == "R":

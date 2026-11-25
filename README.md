@@ -20,21 +20,21 @@ Then connect to the server and pick a number from the list.
 1. Connection (from your game server panel, for example G-Portal)
 FTP address (IP, or IP:port): 203.0.113.10:31921
 FTP user: myuser
-FTP password (hidden while you type):
+FTP password (nothing appears while you type, then press Enter):
 Connected.
 
 2. Pick one (newest first)
    1  24/11/2026 22:30   Monza              26 cars   Race + Qualifying + Practice
    2  22/11/2026 21:34   Spa-Francorchamps  18 cars   Race + Qualifying
    3  21/11/2026 20:10   Monza              12 cars   Practice
-Type the number, or M for older ones [1]: 1
+Type the number, or M for older ones (press Enter for 1): 1
 
 What do you want to see?
   1  Race
   2  Qualifying
   3  Practice
   4  All of them
-Number [1]:
+Number (press Enter for 1):
 
 3. Categories
 Categories saved in the file: PRO (10), SILVER (9), AM (7)
@@ -42,7 +42,7 @@ Categories saved in the file: PRO (10), SILVER (9), AM (7)
 Does your league use categories?
   1  Yes
   2  No, one color per driver
-Number [1]: 1
+Number (press Enter for 1): 1
 
 Which ones?
   1  Pro / Pro-Am / Am
@@ -55,7 +55,7 @@ League name to highlight (empty = none): My League
 Language of the charts
   1  English
   2  Português (Brasil)
-Number [1]:
+Number (press Enter for 1):
 ```
 
 Results go to `reports/`: `charts/`, `summary.txt` and `race.json`.

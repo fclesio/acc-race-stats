@@ -91,7 +91,7 @@ def parse_pairs(items: list[str]) -> dict[str, str]:
 
 # ---------------------------------------------------------------- questions
 def ask(question: str, default: str = "") -> str:
-    answer = input(f"{question}{f' [{default}]' if default else ''}: ").strip()
+    answer = input(f"{question}{f' (press Enter for {default})' if default else ''}: ").strip()
     return answer or default
 
 
@@ -117,23 +117,28 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
 def ask_connection() -> Server:
     print("\n1. Connection (copy it from your game server panel, for example G-Portal)")
     saved = load_server()
-    if saved:
-        print("Press Enter to use the same server as last time.")
     address: Address | None = None
+    if saved:
+        same = f"{saved.host}:{saved.port}, user {saved.user}"
+        if choose("Which server?", [f"The same as last time ({same})", "Another one"]) == 0:
+            address = saved
     while True:
         if address is None:
-            last = f"{saved.host}:{saved.port}" if saved else ""
-            address = ask_until("FTP address (IP, or IP:port)", parse_address, last)
-            if address.port == 21 and (saved is None or address.host != saved.host):
+            address = ask_until("FTP address (IP, or IP:port)", parse_address)
+            if address.port == 21:
                 address.port = ask_until("FTP port", _port, "21")
-        address.user = address.user or ask("FTP user", saved.user if saved else "")
-        address.password = address.password or getpass.getpass("FTP password (hidden while you type): ")
+        address.user = address.user or ask("FTP user")
+        address.password = address.password or getpass.getpass(
+            "FTP password (nothing appears while you type, then press Enter): "
+        )
         print("Connecting...")
         try:
             server = Server(address)
         except LoginError as error:
             print(f"  {error}\n")
-            address.user = address.password = ""
+            address.password = ""
+            if address is not saved:
+                address.user = ""
             continue
         except ServerError as error:
             print(f"  {error}\n")

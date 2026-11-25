@@ -9,7 +9,7 @@ from acc_race_stats import cli, demo
 from acc_race_stats.divisions import found_categories, preset_map
 from acc_race_stats.events import Event
 from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
-from acc_race_stats.settings import load_server
+from acc_race_stats.settings import load_server, save_server
 
 
 class FakeFtp(threading.Thread):
@@ -173,7 +173,7 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
 
 def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
     monkeypatch.setattr("getpass.getpass", lambda question: "secret")
-    for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", ""], ["", "", "", "", "2", "", ""]):
+    for answers in ([f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", ""], ["", "", "", "2", "", ""]):
         replies = iter(answers)
         monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
         cli.main(["--output", str(tmp_path)])
@@ -221,3 +221,21 @@ def test_default_language_is_english(fast, tmp_path):
     cli.main(["--demo", "--output", str(tmp_path)])
     race = json.loads((tmp_path / "2026-03-15-2140-monza-race" / "race.json").read_text())
     assert race["text"] == "Race"
+
+
+def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fast, tmp_path, monkeypatch):
+    save_server(Address("127.0.0.1", ftp.port, "me"))
+    passwords, replies = iter(["wrong", "secret"]), iter(["1", "1", "1", "2", "", ""])
+    monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
+    monkeypatch.setattr("builtins.input", lambda question: next(replies))
+    cli.main(["--output", str(tmp_path)])
+    assert list(tmp_path.iterdir())
+
+
+def test_another_server(ftp, fast, tmp_path, monkeypatch):
+    save_server(Address("192.0.2.1", 21, "old"))
+    replies = iter(["2", f"127.0.0.1:{ftp.port}", "me", "1", "1", "2", "", ""])
+    monkeypatch.setattr("getpass.getpass", lambda question: "secret")
+    monkeypatch.setattr("builtins.input", lambda question: next(replies))
+    cli.main(["--output", str(tmp_path)])
+    assert load_server() == Address("127.0.0.1", ftp.port, "me")

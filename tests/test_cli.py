@@ -1,0 +1,150 @@
+import json
+import socket
+import threading
+from datetime import date
+
+import pytest
+
+from acc_race_stats import cli, demo
+from acc_race_stats.server import Address, LoginError, Server, ServerError, parse_address
+
+
+class FakeFtp(threading.Thread):
+    """Just enough FTP for the client: login, MLSD and RETR in passive mode."""
+
+    def __init__(self, files):
+        super().__init__(daemon=True)
+        self.files = files
+        self.listener = socket.create_server(("127.0.0.1", 0))
+        self.port = self.listener.getsockname()[1]
+        self.start()
+
+    def run(self):
+        while True:
+            try:
+                connection, _ = self.listener.accept()
+            except OSError:
+                return
+            threading.Thread(target=self.serve, args=(connection,), daemon=True).start()
+
+    def serve(self, connection):
+        stream = connection.makefile("rwb")
+
+        def say(text):
+            stream.write(text.encode() + b"\r\n")
+            stream.flush()
+
+        say("220 hi")
+        data = None
+        for raw in stream:
+            command, _, argument = raw.decode().strip().partition(" ")
+            if command == "USER":
+                say("331 password")
+            elif command == "PASS":
+                say("230 ok" if argument == "secret" else "530 no")
+            elif command in ("EPSV", "PASV"):
+                data = socket.create_server(("127.0.0.1", 0))
+                port = data.getsockname()[1]
+                say(f"229 ok (|||{port}|)" if command == "EPSV" else f"227 ok (127,0,0,1,{port >> 8},{port & 255})")
+            elif command in ("MLSD", "RETR"):
+                if command == "MLSD" and argument not in ("/", "/game", "/game/results"):
+                    say("550 no such folder")
+                    continue
+                say("150 here")
+                channel, _ = data.accept()
+                if command == "RETR":
+                    body = self.files[argument.rsplit("/", 1)[1]]
+                elif argument == "/game/results":
+                    body = "".join(f"type=file; {n}\r\n" for n in self.files).encode()
+                else:
+                    body = f"type=dir; {'game' if argument == '/' else 'results'}\r\n".encode()
+                channel.sendall(body)
+                channel.close()
+                say("226 done")
+            elif command == "NLST":
+                say("550 no such folder")
+            else:
+                say("200 ok")
+
+
+@pytest.fixture
+def ftp():
+    files = {s.name: json.dumps(s.data).encode("utf-16-le") for s in demo.weekend()}
+    files["260316_100000_R.json"] = b"broken"
+    server = FakeFtp(files)
+    yield server
+    server.listener.close()
+
+
+@pytest.fixture
+def fast(monkeypatch):
+    def write(race, out, t, lang, mode):
+        (out / "race.json").write_text(json.dumps({"grid": [d.grid for d in race.drivers], "lang": lang}))
+        return []
+
+    monkeypatch.setattr(cli, "write", write)
+    monkeypatch.setattr(cli, "open_folder", lambda path: None)
+
+
+def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
+    answers = iter(["not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "nowhere", "monza", "14/03/2026", "4"])
+    passwords = iter(["wrong", "secret"])
+    monkeypatch.setattr("builtins.input", lambda question: next(answers))
+    monkeypatch.setattr("getpass.getpass", lambda question: next(passwords))
+    cli.main(["--output", str(tmp_path)])
+    text = capsys.readouterr().out
+    assert "user or password is wrong" in text and "secret" not in text
+    assert sorted(p.name.rsplit("-", 1)[1] for p in tmp_path.iterdir()) == ["practice", "qualifying", "race"]
+    race = json.loads((tmp_path / "2026-03-15-2140-monza-race" / "race.json").read_text())
+    assert all(race["grid"]) and race["lang"] == "pt-br"
+
+
+def test_direct_ftp(ftp, fast, tmp_path, monkeypatch):
+    monkeypatch.setenv("ACC_FTP_PASSWORD", "secret")
+    cli.main(["--ftp", f"127.0.0.1:{ftp.port}", "--user", "me", "--lang", "en", "--output", str(tmp_path)])
+    assert [p.name for p in tmp_path.iterdir()] == ["2026-03-15-2140-monza-race"]
+
+
+def test_login_and_connection_errors_are_different(ftp):
+    with pytest.raises(LoginError):
+        Server(Address("127.0.0.1", ftp.port, "me", "nope"))
+    with socket.create_server(("127.0.0.1", 0)) as free:
+        port = free.getsockname()[1]
+    with pytest.raises(ServerError, match="were not tested"):
+        Server(Address("127.0.0.1", port, "me", "x"), timeout=2)
+
+
+def test_address():
+    assert parse_address("ftp://joe:p%40ss@1.2.3.4:8821/") == Address("1.2.3.4", 8821, "joe", "p@ss")
+    assert parse_address(" 1.2.3.4 ") == Address("1.2.3.4", 21)
+    for wrong in ("", "http://x", "1.2.3.4:abc", "1.2.3.4:99999"):
+        with pytest.raises(ServerError):
+            parse_address(wrong)
+
+
+def test_day():
+    today = date(2026, 3, 1)
+    assert cli.parse_day("24/11", today) == date(2025, 11, 24)
+    assert cli.parse_day("01/03", today) == today
+    assert cli.parse_day("2026-11-24") == cli.parse_day("24/11/2026") == date(2026, 11, 24)
+    assert cli.parse_day("") is None
+    with pytest.raises(cli.UserError):
+        cli.parse_day("soon")
+
+
+def test_track():
+    assert cli.parse_track("Nürburgring") == "nurburgring"
+    assert cli.parse_track("spa") == "spa"
+    assert cli.parse_track("monz") == "monza"
+    assert cli.parse_track("") is None
+    with pytest.raises(cli.UserError):
+        cli.parse_track("interlagos")
+
+
+def test_friendly_errors(tmp_path):
+    with pytest.raises(SystemExit, match="No ACC result file"):
+        cli.main([str(tmp_path)])
+    bad = tmp_path / "x.json"
+    bad.write_text("{}")
+    with pytest.raises(SystemExit, match="Error"):
+        cli.main([str(bad)])

@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
       - name: The tag is the version
         run: test "v$(uv run acc-race-stats --version)" = "$GITHUB_REF_NAME"

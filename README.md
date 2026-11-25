@@ -53,7 +53,7 @@ Which ones?
 League name to highlight (empty = none): My League
 ```
 
-Results go to `reports/`: `charts/`, `summary.txt` and `race.json`.
+Results go to `ACC Race Stats` in your Documents folder (Windows, macOS and Linux; `--output` changes it): `charts/`, `summary.txt` and `race.json`.
 
 Try it without a server: `make demo`
 
@@ -104,7 +104,7 @@ order in which the laps were written. Rebuilt laps are listed at the end of the 
 
 ## Privacy
 
-The address, port and user of the last server are remembered on your computer. The FTP password is never saved. Plain FTP sends it unencrypted, so do not reuse it elsewhere. Player ids are never
+The address, port and user of the last server are remembered on your computer. The FTP password is never saved. Downloaded result files are kept in the cache folder of your user so the next run is faster. Plain FTP sends it unencrypted, so do not reuse it elsewhere. Player ids are never
 written to the output.
 
 ## Development

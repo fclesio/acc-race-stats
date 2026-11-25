@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import ftplib
 import io
+import re
 import urllib.parse
 from dataclasses import dataclass
 from datetime import date, timedelta
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
+from .folders import cache_folder
 from .messages import tr
 from .results import ResultError, Session, parse_name, session_from_bytes
 
@@ -51,6 +53,7 @@ class Server:
         self.address, self.timeout = address, timeout
         self.folder = ""
         self.names: list[str] = []
+        self.sizes: dict[str, int] = {}
         self.connect()
 
     def connect(self) -> None:
@@ -83,6 +86,7 @@ class Server:
         try:
             items = list(self.ftp.mlsd(folder))
             files = [n for n, facts in items if facts.get("type") == "file"]
+            self.sizes.update({n: int(f["size"]) for n, f in items if f.get("size", "").isdigit()})
             return files, [n for n, facts in items if facts.get("type") == "dir"]
         except ftplib.error_perm:
             names = [PurePosixPath(n).name for n in self.ftp.nlst(folder)]
@@ -127,7 +131,32 @@ class Server:
             raise ResultError(tr("{name} cannot be downloaded.", name=name)) from error
         return session_from_bytes(name, raw), raw
 
+    def _cached(self, name: str) -> Path | None:
+        """Result files never change, so a downloaded one is kept (only when its size can be checked)."""
+        if name not in self.sizes:
+            return None
+        server = re.sub(r"[^A-Za-z0-9.-]", "-", f"{self.address.host}-{self.address.port}-{self.address.user}")
+        return cache_folder() / server / name
+
     def _fetch(self, name: str) -> bytes:
+        cached = self._cached(name)
+        if cached:
+            try:
+                raw = cached.read_bytes()
+                if len(raw) == self.sizes[name]:
+                    return raw
+            except OSError:
+                pass
+        raw = self._retrieve(name)
+        if cached and len(raw) == self.sizes[name]:
+            try:
+                cached.parent.mkdir(parents=True, exist_ok=True)
+                cached.write_bytes(raw)
+            except OSError:
+                pass
+        return raw
+
+    def _retrieve(self, name: str) -> bytes:
         buffer = io.BytesIO()
 
         def receive(chunk: bytes) -> None:

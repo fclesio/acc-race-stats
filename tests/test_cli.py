@@ -5,7 +5,8 @@ from datetime import date
 
 import pytest
 
-from acc_race_stats import cli, demo
+from acc_race_stats import cli, demo, folders
+from acc_race_stats import server as server_module
 from acc_race_stats.divisions import found_categories, preset_map
 from acc_race_stats.events import Event
 from acc_race_stats.messages import set_language
@@ -21,6 +22,7 @@ class FakeFtp(threading.Thread):
         super().__init__(daemon=True)
         self.files = files
         self.drops = 0
+        self.sent = 0
         self.listener = socket.create_server(("127.0.0.1", 0))
         self.port = self.listener.getsockname()[1]
         self.start()
@@ -64,9 +66,10 @@ class FakeFtp(threading.Thread):
                 say("150 here")
                 channel, _ = data.accept()
                 if command == "RETR":
+                    self.sent += 1
                     body = self.files[argument.rsplit("/", 1)[1]]
                 elif argument == "/game/results":
-                    body = "".join(f"type=file; {n}\r\n" for n in self.files).encode()
+                    body = "".join(f"type=file;size={len(b)}; {n}\r\n" for n, b in self.files.items()).encode()
                 else:
                     body = f"type=dir; {'game' if argument == '/' else 'results'}\r\n".encode()
                 channel.sendall(body)
@@ -93,6 +96,7 @@ def settings(tmp_path_factory, monkeypatch):
     folder = tmp_path_factory.mktemp("settings")
     monkeypatch.setenv("APPDATA", str(folder))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(folder))
+    monkeypatch.setattr(server_module, "cache_folder", lambda: folder / "cache")
     return folder / "acc-race-stats" / "server.json"
 
 
@@ -302,4 +306,34 @@ def test_download_survives_a_dropped_connection(ftp):
     assert server.download(names[0])[0].kind == "FP"
     ftp.drops = 2
     with pytest.raises(ServerError, match="Could not download"):
-        server.download(names[0])
+        server.download(names[1])
+
+
+def test_files_are_downloaded_once(ftp):
+    for _ in range(2):
+        server = Server(Address("127.0.0.1", ftp.port, "me", "secret"))
+        name = server.find_results()[0]
+        assert server.download(name)[0].kind == "FP"
+    assert ftp.sent == 1
+    ftp.files[name] += b" \x00"  # another file with the same name
+    server = Server(Address("127.0.0.1", ftp.port, "me", "secret"))
+    server.find_results()
+    server.download(name)
+    assert ftp.sent == 2
+
+
+def test_default_folder(tmp_path, monkeypatch):
+    monkeypatch.setattr(folders, "documents", lambda: tmp_path / "Documents")
+    assert folders.default_output() == tmp_path / "Documents" / "ACC Race Stats"
+    blocked = tmp_path / "file"
+    blocked.write_text("")
+    monkeypatch.setattr(folders, "documents", lambda: blocked)
+    monkeypatch.setattr(folders.Path, "home", lambda: tmp_path)
+    assert folders.default_output() == tmp_path / "ACC Race Stats"
+
+
+def test_moved_documents_folder_on_linux(tmp_path, monkeypatch):
+    monkeypatch.setattr(folders.sys, "platform", "linux")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    (tmp_path / "user-dirs.dirs").write_text('XDG_DOCUMENTS_DIR="$HOME/Documentos"\n')
+    assert folders.documents() == folders.Path.home() / "Documentos"

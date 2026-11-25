@@ -17,6 +17,7 @@ from pathlib import Path
 from . import __version__, demo
 from .divisions import PRESETS, found_categories, preset_map
 from .events import Event, find_events, useful
+from .folders import default_output
 from .gamedata import TRACKS, track_name
 from .i18n import translator
 from .messages import set_language, tr
@@ -30,6 +31,8 @@ from .settings import load_server, save_server
 from .terminal import question
 
 PAGE = 10
+# a car with one lap takes at least this in a result file; smaller files are not worth a download
+BYTES_PER_CAR = 4000
 KINDS = {"race": {"R"}, "practice": {"FP"}, "qualifying": {"Q"}, "all": {"R", "Q", "FP"}}
 # names of the output folders
 LABEL = {"R": "race", "Q": "qualifying", "FP": "practice"}
@@ -365,7 +368,8 @@ def guided(a: argparse.Namespace) -> list[Path]:
             found = server.try_download(name)
             return found[0] if found else None
 
-        event = choose_event(e for e in find_events(names, load) if e.cars >= a.min_cars)
+        found = find_events(names, load, server.sizes, BYTES_PER_CAR * a.min_cars)
+        event = choose_event(e for e in found if e.cars >= a.min_cars)
     finally:
         server.close()
     sessions = choose_sessions(event)
@@ -440,7 +444,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--class-color", nargs="+", default=[], metavar="CLASS=#RRGGBB", help="change class colors")
     p.add_argument("--league", default="", help="league name, highlighted on every chart")
     p.add_argument("--event", default="", help="event name in the titles")
-    p.add_argument("--output", type=Path, default=Path("reports"), help="output folder (default: reports)")
+    p.add_argument("--output", type=Path, help="output folder (default: ACC Race Stats in your Documents)")
     p.add_argument("--no-open", action="store_true", help="do not open the folder at the end")
     p.add_argument("--version", action="version", version=__version__)
     return p
@@ -459,6 +463,7 @@ def main(argv: list[str] | None = None) -> None:
     if interactive and a.list:
         parser.error("--list needs a path or --ftp")
     try:
+        a.output = a.output or default_output()
         folders = guided(a) if interactive else direct(a)
     except (UserError, ServerError, ResultError, RosterError) as error:
         sys.exit(tr("Error: {error}", error=error))

@@ -45,3 +45,16 @@ def test_empty_and_other_track_sessions_are_left_out():
         make("260315_214000_R.json"),
         make("260316_214000_R.json", laps=0),
     ) == [["260315_2140R"]]
+
+
+def test_small_files_are_not_read():
+    files = {s.name: s for s in (make("260314_203000_FP.json"), make("260315_203000_FP.json"))}
+    read = []
+
+    def load(name):
+        read.append(name)
+        return files[name]
+
+    sizes = {"260314_203000_FP.json": 9000, "260315_203000_FP.json": 900}
+    assert len(list(find_events(list(files), load, sizes, 8000))) == 1
+    assert read == ["260314_203000_FP.json"]

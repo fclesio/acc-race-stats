@@ -8,6 +8,7 @@ flowchart LR
   timing --> race
   roster --> race
   divisions --> cli
+  config --> cli
   race --> palette --> charts
   race --> report
   charts --> report
@@ -26,6 +27,7 @@ flowchart LR
 | `divisions`, `palette`, `roster` | categories, colors, driver list and grid |
 | `charts`, `report` | PNG files, `summary.txt` and `race.json` |
 | `folders`, `settings` | where things are saved on each system |
+| `config` | the optional settings file (`acc-race-stats.toml`) |
 | `gamedata` | cars, tracks and categories of the game |
 | `demo` | invented race weekend, also used by the tests |
 
@@ -39,7 +41,10 @@ flowchart LR
 - **Few round trips.** On a distant server each file takes more than a second. Small files are skipped by size, the
   biggest practice is taken as the main one, and downloads are cached because result files never change.
 - **No decision by color alone** where lines cross: dashes, markers or labels repeat it.
-- **One runtime dependency**, matplotlib.
+- **One runtime dependency**, matplotlib (and `tomli` on Python 3.10, which has no `tomllib`).
+- **Launchers without make.** `run.sh` needs only `sh` and `curl`; `make`, `make.bat` and the double-click files call
+  it or do the same, so nobody has to install developer tools.
+- **One folder per session.** Charts, summary and data sit side by side, ready to send.
 
 ## Tests
 

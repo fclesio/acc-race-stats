@@ -12,6 +12,7 @@ milliseconds unless the name says otherwise. Player ids are never included.
 | `laps` | int | laps of the first classified driver |
 | `warnings` | list of strings | problems in the data, in the chosen language |
 | `drivers` | list | in final order |
+| `battles` | list | races only: up to 4 pairs, as in [the battle chart](charts.md#race); empty otherwise |
 
 Each driver:
 
@@ -32,3 +33,10 @@ Each driver:
 | `lap_times_ms` | list of int | in a race, lap 1 starts at the green light |
 | `elapsed_ms` | list of int | time at the end of each lap |
 | `penalties` | list | `penalty`, `reason`, `violationInLap`, `clearedInLap`, as in the game |
+
+Each battle:
+
+| Field | Type | Content |
+|---|---|---|
+| `ahead`, `behind` | string | names, in final order |
+| `laps_within_1s` | int | laps as neighbours less than 1 s apart, without the laps around their stops |

@@ -15,7 +15,7 @@ counted as pit stops.
 | `05-stints` | laps between stops, and penalties served |
 | `06-top5-pace` | clean laps of the top 5 |
 | `07-pace-by-class` | top 3 of each category, 3-lap moving average of clean laps |
-| `08-battles` | pairs with most laps less than 1 s apart, without the laps around their stops |
+| `08-battles` | up to 4 pairs of neighbours with most laps less than 1 s apart (at least 3), without the laps around their stops |
 | `09-pit-stops` | position 2 laps before the first stop and after everyone stopped, and the time lost |
 | `10-consistency` | average distance of the clean laps to the driver's median |
 | `11-best-lap` | gap to the fastest lap |
@@ -32,6 +32,9 @@ Notes:
 - **Retired** means less than 75% of the laps of the winner.
 - **Time lost in a stop** is the stop lap and its two neighbours − 3 × the driver's median.
 - **After everyone stopped** is 2 laps after 80% of the drivers made their first stop.
+- **Battles** show the gap of the pair on every lap of the race. Dots are the laps that count (less than 1 s apart); a
+  gap of more than 4 s is drawn on the edge of the panel, with a triangle. The same pairs are in `race.json` and the
+  first one is in `summary.txt`.
 
 ## Qualifying and practice
 

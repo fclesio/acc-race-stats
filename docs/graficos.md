@@ -44,7 +44,8 @@ Makkinen, que fez a volta mais rápida da corrida. Ganhou com três coisas:
 
 **Como ler.** Uma linha por piloto, na ordem final. Em **TEMPO / GAP**, o vencedor tem o tempo total e os outros, a
 diferença para ele; quem terminou com menos voltas aparece como "+1 volta", e quem não completou 75% da corrida, como
-"abandono" (DNF). A melhor volta da corrida aparece em roxo.
+"abandono" (DNF). A melhor volta da corrida aparece em roxo. Ao lado da posição no GRID, a seta mostra quantas posições
+o piloto ganhou (▲ verde) ou perdeu (▼ vermelho) até a bandeirada; = é a mesma posição.
 
 **No exemplo do Rico Nosberg.** Largou em 3º e venceu em 30 voltas, com 55:31.940, 4,761 s à frente do Hika Makkinen e
 21,6 s à frente do Hewis Lamilton, 3º e vencedor da PRO-AM. A melhor volta dele (1:48.090) foi a segunda mais rápida; a

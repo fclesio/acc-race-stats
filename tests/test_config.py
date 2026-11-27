@@ -84,7 +84,7 @@ def test_a_file_with_a_password_is_made_private(tmp_path):
         assert path.stat().st_mode & 0o777 == 0o600
 
 
-def test_guided_answers_are_saved_and_not_asked_again(ftp, fast, tmp_path, monkeypatch):
+def test_guided_answers_are_saved_and_not_asked_again(ftp, fast, tmp_path, monkeypatch, capsys):
     first = iter(["1", f"127.0.0.1:{ftp.port}", "me", "1", "1", "1", "1", 'Liga "X"', "1"])
     monkeypatch.setattr("builtins.input", lambda question: next(first))
     monkeypatch.setattr(cli, "ask_password", lambda: "secret")
@@ -97,7 +97,10 @@ def test_guided_answers_are_saved_and_not_asked_again(ftp, fast, tmp_path, monke
     second = iter(["1", "1"])  # only the event and the session
     monkeypatch.setattr("builtins.input", lambda question: next(second))
     monkeypatch.setattr(cli, "ask_password", lambda: pytest.fail("the password was asked"))
+    capsys.readouterr()
     cli.main(["--output", str(tmp_path / "b")])
+    shown = capsys.readouterr().out
+    assert "1. " not in shown and "3. " not in shown and "4. " not in shown  # nothing asked, no header
     race = json.loads((tmp_path / "b" / "2026-03-15-2140-monza-race" / "race.json").read_text())
     assert race["league"] == 'Liga "X"'
 

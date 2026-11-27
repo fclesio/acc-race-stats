@@ -133,7 +133,8 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
 
 
 def ask_connection(preset: Address | None = None) -> Server:
-    print(tr("\n1. Connection (copy it from your game server panel, for example G-Portal)"))
+    if not (preset and preset.user and preset.password):
+        print(tr("\n1. Connection (copy it from your game server panel, for example G-Portal)"))
     saved = preset or load_server()
     address: Address | None = preset
     if saved and not preset:
@@ -320,6 +321,7 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
     found = found_categories(session)
     if a.divisions or a.class_map or a.color_by == "driver" or a.roster:
         return
+    print(tr("\n3. Categories"))
     print(tr("Categories saved in the file: ") + ", ".join(f"{name} ({count})" for name, count in found.items()))
     has = choose(
         tr("Does your league use categories?"), [tr("Yes"), tr("No, one color per driver")], 1 if len(found) > 1 else 2
@@ -394,9 +396,9 @@ def guided(a: argparse.Namespace, config: Config | None = None) -> list[Path]:
     finally:
         server.close()
     sessions = choose_sessions(event)
-    print(tr("\n3. Categories"))
     ask_divisions(a, sessions[-1])
-    print(tr("\n4. Charts"))
+    if not a.league or not config.path:  # sections without questions are not shown
+        print(tr("\n4. Charts"))
     a.league = a.league or ask(tr("League name to highlight (empty = none)"))
     if not config.path:
         offer_to_save(a, server.address)

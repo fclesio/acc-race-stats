@@ -51,13 +51,21 @@ def summary(race: Race, t: Translate, mode: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write(race: Race, out: Path, t: Translate, mode: str) -> list[Path]:
-    """Writes charts/, race.json and summary.txt."""
-    charts = out / "charts"
-    if charts.exists():  # charts of an earlier run in the same folder
-        for old in charts.glob("[0-9][0-9]-*.png"):
+def remove_old_charts(out: Path) -> None:
+    """Charts of an earlier run in the same folder, also from 0.1.0, which kept them in charts/."""
+    for folder in (out, out / "charts"):
+        for old in folder.glob("[0-9][0-9]-*.png"):
             old.unlink()
-    images = Charts(race, charts, t, mode).draw()
+    try:
+        (out / "charts").rmdir()
+    except OSError:
+        pass
+
+
+def write(race: Race, out: Path, t: Translate, mode: str) -> list[Path]:
+    """Writes the charts, race.json and summary.txt side by side in one folder."""
+    remove_old_charts(out)
+    images = Charts(race, out, t, mode).draw()
     text = summary(race, t, mode)
     (out / "summary.txt").write_text(text, encoding="utf-8")
     data = json.dumps(race.to_dict(), ensure_ascii=False, indent=1)

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from acc_race_stats import cli, config
+from acc_race_stats.report import write
 from acc_race_stats.server import Address
 
 EXAMPLE = Path(__file__).parents[1] / "acc-race-stats.example.toml"
@@ -91,7 +92,7 @@ def test_guided_answers_are_saved_and_not_asked_again(ftp, fast, tmp_path, monke
     saved = config.load()
     assert saved.path == Path.cwd() / config.FILE_NAME
     assert saved.server == Address("127.0.0.1", ftp.port, "me", "secret")
-    assert saved.defaults == {"lang": "en", "league": 'Liga "X"', "divisions": "pro"}
+    assert saved.defaults == {"lang": "pt-br", "league": 'Liga "X"', "divisions": "pro"}
 
     second = iter(["1", "1"])  # only the event and the session
     monkeypatch.setattr("builtins.input", lambda question: next(second))
@@ -111,3 +112,20 @@ def test_a_changed_password_replaces_the_saved_one(ftp, fast, tmp_path, monkeypa
     monkeypatch.setattr(cli, "ask_password", lambda: "secret")
     cli.main(["--config", str(path), "--output", str(tmp_path / "out")])
     assert config.load(path).server.password == "secret"
+
+
+def test_charts_are_next_to_the_summary(tmp_path):
+    from acc_race_stats import demo
+    from acc_race_stats.i18n import translator
+    from acc_race_stats.race import Race
+
+    old = tmp_path / "charts"
+    old.mkdir()
+    (old / "01-result.png").write_bytes(b"")
+    race = Race(demo.weekend()[2])
+    images = write(race, tmp_path, translator("en"), "class")
+    assert images and all(image.parent == tmp_path for image in images)
+    assert (tmp_path / "summary.txt").exists() and not old.exists()
+    assert "08-battles.png" in {image.name for image in images}
+    battles = json.loads((tmp_path / "race.json").read_text())["battles"]
+    assert battles and battles[0]["laps_within_1s"] >= 3

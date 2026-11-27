@@ -373,7 +373,7 @@ def guided(a: argparse.Namespace, config: Config | None = None) -> list[Path]:
     config = config or Config()
     print("ACC Race Stats\n" + "=" * 14)
     if not a.lang:
-        a.lang = ["en", "pt-br"][choose("Language / Idioma", ["English", "Português (Brasil)"])]
+        a.lang = ["pt-br", "en"][choose("Idioma / Language", ["Português (Brasil)", "English"])]
         set_language(a.lang)
     typed = config.server.password if config.server else ""
     server = ask_connection(config.server)
@@ -456,7 +456,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--session", choices=list(KINDS), default="race", help="what to draw (default: race)")
     p.add_argument("--min-cars", type=int, default=2, help="hide events with fewer cars in the questions (default: 2)")
     p.add_argument("--list", action="store_true", help="only list the sessions found")
-    p.add_argument("--lang", choices=["en", "pt-br"], help="language of the questions and charts (default: en)")
+    p.add_argument("--lang", choices=["en", "pt-br"], help="language of the questions and charts (default: pt-br)")
     p.add_argument(
         "--divisions",
         choices=["none", "game", *PRESETS],

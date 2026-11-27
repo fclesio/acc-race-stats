@@ -31,7 +31,7 @@ def test_every_field_is_given():
 
 
 def test_nothing_is_printed_without_translation():
-    allowed = {"ACC Race Stats\n", "Language / Idioma"}
+    allowed = {"ACC Race Stats\n", "Idioma / Language"}
     for name in ("print", "ask", "choose", "ask_until", "ServerError", "UserError", "ResultError", "ConfigError"):
         for where, node in calls(name):
             for argument in node.args:

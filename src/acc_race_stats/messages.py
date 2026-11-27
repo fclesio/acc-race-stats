@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-DEFAULT_LANGUAGE = "en"
+DEFAULT_LANGUAGE = "pt-br"
 _language = DEFAULT_LANGUAGE
 
 

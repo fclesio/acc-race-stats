@@ -14,7 +14,7 @@ from acc_race_stats.terminal import collect
 
 def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
     answers = iter(
-        ["2", "not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"]
+        ["1", "not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"]
     )
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
@@ -71,12 +71,12 @@ def test_track():
 
 def test_friendly_errors(tmp_path):
     with pytest.raises(SystemExit, match="No ACC result file"):
-        cli.main([str(tmp_path)])
+        cli.main([str(tmp_path), "--lang", "en"])
     with pytest.raises(SystemExit, match="No ACC result file"):
-        cli.main([str(tmp_path / "missing")])
+        cli.main([str(tmp_path / "missing"), "--lang", "en"])
     bad = tmp_path / "x.json"
     bad.write_text("{}")
-    with pytest.raises(SystemExit, match="Error"):
+    with pytest.raises(SystemExit, match="Erro"):
         cli.main([str(bad)])
 
 
@@ -134,10 +134,10 @@ def test_category_questions(answers, divisions, names, monkeypatch):
     assert (options.divisions, options.class_map) == (divisions, names)
 
 
-def test_default_language_is_english(fast, tmp_path):
+def test_default_language_is_portuguese(fast, tmp_path):
     cli.main(["--demo", "--output", str(tmp_path)])
     race = json.loads((tmp_path / "2026-03-15-2140-monza-race" / "race.json").read_text())
-    assert race["text"] == "Race"
+    assert race["text"] == "Corrida"
 
 
 def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fast, tmp_path, monkeypatch):

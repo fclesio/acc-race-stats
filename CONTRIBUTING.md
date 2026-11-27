@@ -14,7 +14,8 @@ Issues and pull requests are welcome. For a large change, open an issue first.
 
 - `run.sh` and `ACC-Race-Stats.command` are POSIX `sh` (`dash -n run.sh` checks it) and must stay executable.
 
-- Code, comments and documentation are in English. `README.pt-BR.md` mirrors `README.md`: change both. Text for users goes in `messages.py` (questions and errors) or
+- Code, comments and documentation are in English. `README.md` (Portuguese, the main one) and `README.en.md`
+  (English) mirror each other: change both. Text for users goes in `messages.py` (questions and errors) or
   `i18n.py` (charts), in English and Portuguese.
 - Every fix comes with a test. Tests use invented data only: no real drivers, player ids, addresses or passwords.
 - Look at the charts you change, with categories and with `--divisions none`.

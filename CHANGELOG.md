@@ -3,6 +3,12 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+
+- `README.md` is in Portuguese, with a link to the English version in `README.en.md`.
+
 ## [0.1.1] - 2026-11-27
 
 ### Added
@@ -48,5 +54,6 @@ First version.
 - Driver list, starting grid and league name.
 - `make` on macOS and Linux, and `make.bat` on Windows.
 
+[Unreleased]: https://github.com/fclesio/acc-race-stats/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/fclesio/acc-race-stats/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/fclesio/acc-race-stats/releases/tag/v0.1.0

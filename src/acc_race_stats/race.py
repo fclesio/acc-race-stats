@@ -200,17 +200,24 @@ class Race:
     def fastest(self) -> Driver | None:
         return min((d for d in self.drivers if d.best), key=lambda d: d.best or 0, default=None)
 
+    @staticmethod
+    def near_stop(driver: Driver) -> set[int]:
+        """A stop lap and its neighbours: the pit box can be before or after the line."""
+        return {lap + k for lap in driver.stops for k in (-1, 0, 1)}
+
     def gap(self, a: Driver, b: Driver, lap: int) -> int | None:
         if lap > min(len(a.elapsed), len(b.elapsed)):
             return None
         return b.elapsed[lap - 1] - a.elapsed[lap - 1]
 
     def battles(self, limit: int = 4) -> list[tuple[Driver, Driver, int]]:
-        """Pairs of neighbours less than 1 s apart for the most laps (at least 3)."""
+        """Pairs of neighbours less than 1 s apart for the most laps (at least 3), without the laps around stops."""
         count: dict[tuple[int, int], int] = {}
         for lap in range(2, len(self.order) + 1):
             order = [self.by_id[c] for c in self.order[lap - 1]]
             for a, b in zip(order, order[1:], strict=False):
+                if lap in self.near_stop(a) | self.near_stop(b):
+                    continue
                 gap = self.gap(a, b, lap)
                 if gap is not None and gap < 1000:
                     first, second = sorted((a, b), key=lambda d: d.position)
@@ -259,4 +266,7 @@ class Race:
                 }
                 for d in self.drivers
             ],
+            "battles": [
+                {"ahead": a.name, "behind": b.name, "laps_within_1s": n} for a, b, n in self.battles()
+            ] if self.kind == "R" else [],
         }  # fmt: skip

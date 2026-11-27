@@ -60,8 +60,10 @@ TEXT: dict[str, tuple[str, str]] = {
     ),
     "battles": ("Batalhas", "Battles"),
     "battles_sub": (
-        "duplas com mais voltas a menos de 1 s · acima de 0: o primeiro nome está à frente",
-        "pairs with most laps less than 1 s apart · above 0: the first name is ahead",
+        "duplas com mais voltas a menos de 1 s · acima de 0: o primeiro nome está à frente · "
+        "pontos: voltas a menos de 1 s · triângulos: mais de {limit} s",
+        "pairs with most laps less than 1 s apart · above 0: the first name is ahead · "
+        "dots: laps less than 1 s apart · triangles: more than {limit} s",
     ),
     "battle_laps": ("{n} voltas a menos de 1 s", "{n} laps less than 1 s apart"),
     "pits": ("Paradas no box", "Pit stops"),

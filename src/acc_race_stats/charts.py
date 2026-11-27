@@ -36,6 +36,7 @@ LOGOS = Path(__file__).parent / "logos"
 LOGO_WIDTH = 34  # points, the same for every brand
 MONO = ["Menlo", "Consolas", "DejaVu Sans Mono"]
 MAX_NAME = 22
+BATTLE_SCALE = 4  # seconds above and below 0 in the battle chart
 STYLE: Any = {
     "font.family": ["Avenir Next", "Helvetica Neue", "Segoe UI", "Arial", "DejaVu Sans"], "font.size": 12,
     "text.color": TEXT, "axes.facecolor": BG, "figure.facecolor": BG, "savefig.facecolor": BG,
@@ -355,7 +356,7 @@ class Charts:
             return
         fig, axes = self.figure(
             self.t("battles"),
-            self.t("battles_sub"),
+            self.t("battles_sub", limit=BATTLE_SCALE),
             18,
             3.6 * len(pairs) + 3,
             nrows=len(pairs),
@@ -363,14 +364,26 @@ class Charts:
             squeeze=False,
         )
         fig.subplots_adjust(left=0.06, right=0.97, hspace=0.75)
+        nan = float("nan")
         for ax, (a, b, count) in zip(axes[:, 0], pairs, strict=True):
-            skip = {lap + k for d in (a, b) for lap in d.stops for k in (-1, 0, 1)}
-            laps = range(1, min(len(a.elapsed), len(b.elapsed)) + 1)
-            gaps = [float("nan") if n in skip else (self.race.gap(a, b, n) or 0) / 1000 for n in laps]
+            skip = self.race.near_stop(a) | self.race.near_stop(b)
+            laps = list(range(1, min(len(a.elapsed), len(b.elapsed)) + 1))
+            gaps = [nan if n in skip else (self.race.gap(a, b, n) or 0) / 1000 for n in laps]
+            # a gap off the scale is drawn on its edge, so the line never leaves the panel
+            shown = [g if g != g else max(-BATTLE_SCALE, min(BATTLE_SCALE, g)) for g in gaps]  # g != g: a NaN
             ax.axhspan(-1, 1, color="#1d2a14", zorder=0)
             ax.axhline(0, color=MUTED, lw=1)
-            ax.plot(laps, gaps, color=a.color, lw=2.4, marker="o", ms=3.5)
-            ax.set_ylim(-4, 4)
+            ax.plot(laps, shown, color=a.color, lw=2.4, zorder=3)
+            close = [(n, g) for n, g in zip(laps, gaps, strict=True) if abs(g) < 1]
+            if close:
+                ax.scatter(*zip(*close, strict=True), s=36, color=a.color, zorder=4)
+            for side, marker in ((1, "^"), (-1, "v")):
+                edge = [n for n, g in zip(laps, gaps, strict=True) if side * g > BATTLE_SCALE]
+                if edge:
+                    ax.scatter(edge, [side * BATTLE_SCALE] * len(edge), marker=marker, s=60, color=BG,
+                               edgecolor=a.color, linewidth=1.6, zorder=4)  # fmt: skip
+            ax.set_ylim(-BATTLE_SCALE - 0.8, BATTLE_SCALE + 0.8)
+            ax.set_xlim(0.5, self.race.total_laps + 0.5)
             title = f"P{a.position} {short(a.name)}  ×  P{b.position} {short(b.name)}   ·   "
             ax.set_title(title + self.t("battle_laps", n=count), loc="left", fontsize=14)
             ax.grid(alpha=0.5)

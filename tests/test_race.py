@@ -145,3 +145,13 @@ def test_every_brand_has_a_logo_of_the_same_size():
 def test_custom_categories_keep_the_order_of_the_league(weekend):
     names = {"PRO": "ELITE", "PRO-AM": "CLUB", "AM": "BEGINNER"}
     assert Race(weekend[2], class_map=names).classes == ["ELITE", "CLUB", "BEGINNER"]
+
+
+def test_grid_change_marks():
+    from acc_race_stats.charts import GREEN, MUTED, RED, grid_change
+
+    assert grid_change(5, 2, False) == ("▲3", GREEN)
+    assert grid_change(2, 4, False) == ("▼2", RED)
+    assert grid_change(3, 3, False) == ("=", MUTED)
+    assert grid_change(None, 3, False) == ("", MUTED)
+    assert grid_change(3, 9, True) == ("", MUTED)

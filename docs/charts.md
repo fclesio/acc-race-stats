@@ -8,7 +8,7 @@ counted as pit stops.
 
 | Chart | What it shows |
 |---|---|
-| `01-result` | final order, category, car, laps, gap, best lap (fastest in purple) and grid |
+| `01-result` | final order, category, car, laps, gap, best lap (fastest in purple), and grid with the positions gained (▲) or lost (▼) |
 | `02-positions-gained` | grid position − final position |
 | `03-race-start` | grid position − position at the end of lap 1 |
 | `04-gap-to-winner` | race time against the average lap of the winner; higher is ahead |

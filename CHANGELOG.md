@@ -15,6 +15,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `README.md` is in Portuguese, with a link to the English version in `README.en.md`.
 - The step-by-step guide shows where the FTP access is in the server panel.
 
+### Changed
+
+- `01-result` shows the positions gained (▲, green) or lost (▼, red) next to the grid position.
+- `04-gap-to-winner` has grid lines every 10 s and every 3 laps, and `16-pace-distribution` every second.
+
 ### Fixed
 
 - The subtitle of a chart with no description no longer ends with a separator.

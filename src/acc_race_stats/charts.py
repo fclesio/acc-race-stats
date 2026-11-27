@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
-from matplotlib.ticker import FuncFormatter, MaxNLocator  # noqa: E402
+from matplotlib.ticker import FuncFormatter, MaxNLocator, MultipleLocator  # noqa: E402
 
 from .gamedata import brand  # noqa: E402
 from .i18n import Translate  # noqa: E402
@@ -60,6 +60,25 @@ def short(name: str) -> str:
 def whole(ax: Any) -> None:
     """Laps and positions have no decimals."""
     ax.xaxis.set_major_locator(MaxNLocator(nbins=12, integer=True, min_n_ticks=1))
+
+
+def every(ax: Any, axis: str, step: float, span: float, most: int = 25) -> None:
+    """Ticks and grid lines every `step`, or a multiple of it when there would be more than `most` lines."""
+    while span / step > most:
+        step *= 2
+    getattr(ax, f"{axis}axis").set_major_locator(MultipleLocator(step))
+
+
+def grid_change(grid: int | None, position: int, retired: bool) -> tuple[str, str]:
+    """Positions gained from the grid: ▲ green, ▼ red, = grey; nothing without a grid or after retiring."""
+    if not grid or retired:
+        return "", MUTED
+    change = grid - position
+    if change > 0:
+        return f"▲{change}", GREEN
+    if change < 0:
+        return f"▼{-change}", RED
+    return "=", MUTED
 
 
 def ink(color: str) -> str:
@@ -198,9 +217,10 @@ class Charts:
                 gap = t("one_lap") if behind == 1 else t("n_laps", n=behind)
             else:
                 gap = f"+{(d.total - winner.total) / 1000:.3f}s"
-            return [(str(d.laps), TEXT), (gap, TEXT), self.best_cell(d), (str(d.grid or "—"), TEXT)]
+            change = grid_change(d.grid, d.position, d.retired)
+            return [(str(d.laps), TEXT), (gap, TEXT), self.best_cell(d), (str(d.grid or "—"), TEXT), change]
 
-        columns = self.columns((0.6, t("laps")), (0.67, t("time")), (0.8, t("best")), (0.93, t("grid")))
+        columns = self.columns((0.6, t("laps")), (0.67, t("time")), (0.8, t("best")), (0.91, t("grid")), (0.95, ""))
         self.table(
             "01-result", t("result"), t("result_sub", cars=len(race.drivers), laps=race.total_laps), columns, cells
         )
@@ -260,7 +280,8 @@ class Charts:
             )
         ax.set_xlim(0, race.total_laps)
         ax.axhline(0, color=MUTED, lw=1, ls="--")
-        whole(ax)
+        every(ax, "x", 3, race.total_laps)
+        every(ax, "y", 10, ax.get_ylim()[1] - ax.get_ylim()[0])
         ax.set_xlabel(self.t("lap") + "  ·  " + self.t("trace_note"))
         ax.set_ylabel(self.t("seconds"))
         ax.grid(alpha=0.6)
@@ -554,8 +575,9 @@ class Charts:
         ax.set_ylim(len(rows) - 0.4, -0.6)
         self.names(ax, rows, [f"P{d.position}  {short(d.name)}" for d in rows])
         ax.xaxis.set_major_formatter(self.laptime)
+        every(ax, "x", 1, ax.get_xlim()[1] - ax.get_xlim()[0])
         ax.set_xlabel(self.t("lap_time"))
-        ax.grid(axis="x", alpha=0.5)
+        ax.grid(axis="x", alpha=0.6)
         self.legend(fig)
         self.save(fig, "16-pace-distribution")
 

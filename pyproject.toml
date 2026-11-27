@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "acc-race-stats"
-version = "0.1.1"
+version = "0.1.2"
 description = "Race, qualifying and practice charts from Assetto Corsa Competizione server results"
 readme = "README.md"
 requires-python = ">=3.10"

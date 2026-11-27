@@ -161,7 +161,7 @@ A documentação detalhada está em inglês.
 
 ## Situação
 
-A versão atual é a 0.1.1; veja o [changelog](CHANGELOG.md). Foi desenvolvido e testado no macOS; o CI roda os mesmos
+A versão atual é a 0.1.2; veja o [changelog](CHANGELOG.md). Foi desenvolvido e testado no macOS; o CI roda os mesmos
 testes e atalhos no Windows e no Linux. Problemas nesses sistemas são os relatos mais bem-vindos.
 
 ## Licença

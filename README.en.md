@@ -152,7 +152,7 @@ and updates the file. Leave `password` out to be asked every time. See [all sett
 
 ## Status
 
-The current version is 0.1.1; see the [changelog](CHANGELOG.md). It was developed and tested on macOS; the CI workflow
+The current version is 0.1.2; see the [changelog](CHANGELOG.md). It was developed and tested on macOS; the CI workflow
 runs the same tests and launchers on Windows and Linux. Problems on those systems are the most welcome reports.
 
 ## License

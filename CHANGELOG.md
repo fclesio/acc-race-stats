@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the versions follow
 [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [0.1.2] - 2026-11-27
 
 ### Added
 
@@ -14,9 +14,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - `README.md` is in Portuguese, with a link to the English version in `README.en.md`.
 - The step-by-step guide shows where the FTP access is in the server panel.
-
-### Changed
-
 - `01-result` shows the positions gained (▲, green) or lost (▼, red) next to the grid position.
 - `04-gap-to-winner` has grid lines every 10 s and every 3 laps, and `16-pace-distribution` every second.
 
@@ -69,6 +66,6 @@ First version.
 - Driver list, starting grid and league name.
 - `make` on macOS and Linux, and `make.bat` on Windows.
 
-[Unreleased]: https://github.com/fclesio/acc-race-stats/compare/v0.1.1...HEAD
+[0.1.2]: https://github.com/fclesio/acc-race-stats/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/fclesio/acc-race-stats/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/fclesio/acc-race-stats/releases/tag/v0.1.0

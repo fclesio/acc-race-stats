@@ -78,11 +78,11 @@ class Charts:
         fig, axes = plt.subplots(figsize=(width, height), **grid)
         fig.subplots_adjust(top=1 - 1.75 / height, bottom=0.95 / height)
         fig.text(0.035, 1 - 0.4 / height, title, fontsize=24, fontweight="bold", va="top")
-        kind = "" if self.race.kind == "R" else self.t(self.race.kind) + "  ·  "
+        kind = "" if self.race.kind == "R" else self.t(self.race.kind)
         fig.text(
             0.035,
             1 - 0.95 / height,
-            " · ".join(x for x in (self.race.event, self.race.track) if x) + f"  ·  {kind}{sub}",
+            "  ·  ".join(x for x in (" · ".join(x for x in (self.race.event, self.race.track) if x), kind, sub) if x),
             fontsize=13,
             color=MUTED,
             va="top",

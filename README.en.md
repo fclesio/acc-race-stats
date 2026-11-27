@@ -142,6 +142,7 @@ and updates the file. Leave `password` out to be asked every time. See [all sett
 |---|---|
 | [Usage](docs/usage.md) | every option, driver lists, starting grids, categories |
 | [Charts](docs/charts.md) | what each chart shows and how it is calculated |
+| [How to read the charts](docs/graficos.md) | every chart explained with the winner of a real race (in Portuguese) |
 | [Race clock](docs/race-clock.md) | why adding up lap times is wrong, and the fix |
 | [race.json](docs/race-json.md) | data format |
 | [Architecture](docs/architecture.md) | modules and design decisions |

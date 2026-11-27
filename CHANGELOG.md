@@ -5,10 +5,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- `docs/graficos.md`: how to read every race chart, in Portuguese, with the winner of a real league race as the
+  example and fictional driver names.
+
 ### Changed
 
 - `README.md` is in Portuguese, with a link to the English version in `README.en.md`.
 - The step-by-step guide shows where the FTP access is in the server panel.
+
+### Fixed
+
+- The subtitle of a chart with no description no longer ends with a separator.
 
 ## [0.1.1] - 2026-11-27
 

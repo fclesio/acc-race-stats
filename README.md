@@ -87,7 +87,9 @@ inglês).
 | ![Resultado](docs/images/01-result.png) | ![Diferença para o vencedor](docs/images/04-gap-to-winner.png) |
 | ![Paradas no box](docs/images/09-pit-stops.png) | ![Batalhas](docs/images/08-battles.png) |
 
-As imagens vêm de uma corrida inventada (`./run.sh demo`). Veja [cada gráfico explicado](docs/charts.md) (em inglês).
+As imagens vêm de uma corrida inventada (`./run.sh demo`).
+
+**[→ Como ler cada gráfico, com o exemplo do vencedor de uma corrida real](docs/graficos.md)**
 
 ## Pelo terminal
 
@@ -148,6 +150,7 @@ A documentação detalhada está em inglês.
 | Página | |
 |---|---|
 | [Uso](docs/usage.md) | todas as opções, lista de pilotos, grid de largada, categorias |
+| [Como ler os gráficos](docs/graficos.md) | cada gráfico explicado com o exemplo do vencedor de uma corrida real |
 | [Gráficos](docs/charts.md) | o que cada gráfico mostra e como é calculado |
 | [Relógio de corrida](docs/race-clock.md) | por que somar os tempos de volta está errado, e a correção |
 | [race.json](docs/race-json.md) | formato dos dados |

@@ -70,6 +70,8 @@ def test_track():
 def test_friendly_errors(tmp_path):
     with pytest.raises(SystemExit, match="No ACC result file"):
         cli.main([str(tmp_path)])
+    with pytest.raises(SystemExit, match="No ACC result file"):
+        cli.main([str(tmp_path / "missing")])
     bad = tmp_path / "x.json"
     bad.write_text("{}")
     with pytest.raises(SystemExit, match="Error"):

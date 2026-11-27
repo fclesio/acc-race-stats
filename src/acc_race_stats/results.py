@@ -74,6 +74,8 @@ def session_from_bytes(name: str, raw: bytes) -> Session:
 
 def load_path(path: Path) -> list[Session]:
     """Every ACC session in a file or folder; other files are skipped."""
+    if not path.exists():
+        raise ResultError(tr("No ACC result file found in {path}", path=path))
     files = sorted(path.glob("*.json")) if path.is_dir() else [path]
     sessions = []
     for file in files:

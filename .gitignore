@@ -5,6 +5,7 @@ __pycache__/
 .mypy_cache/
 dist/
 reports/
+ACC Race Stats/
 *.env
 .DS_Store
 acc-race-stats.toml

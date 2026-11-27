@@ -37,11 +37,18 @@ Só na primeira vez:
   Assim**.
 - Depois o programa baixa sozinho o que precisa, e isso pode levar alguns minutos. Não há nada para instalar.
 
-### 4. Responda as perguntas
+### 4. Deixe o painel do servidor aberto
+
+O programa pede os dados de acesso **FTP** do seu servidor. Abra o painel da empresa do servidor (aqui, a G-Portal) na
+tela **Dados de acesso** e deixe aberta ao lado: é de lá que você copia o IP, a porta, o nome de usuário e a senha.
+
+![Painel da G-Portal na tela Dados de acesso, com o bloco FTP destacado](docs/images/tutorial/pt-br-gportal.png)
+
+### 5. Responda as perguntas
 
 Digite a resposta e aperte **Enter**; nas imagens, o que você digita está em amarelo e as dicas em verde. Nos menus,
-digite só o número. Endereço, usuário e senha do FTP estão no painel da empresa do seu servidor (o G-Portal, por
-exemplo). A senha aparece só como asteriscos.
+digite só o número. No **Endereço do FTP**, digite o IP e a porta do bloco FTP do painel, com dois pontos no meio
+(`IP:porta`). A senha aparece só como asteriscos.
 
 ![Idioma e conexão](docs/images/tutorial/pt-br-step1.png)
 
@@ -54,7 +61,7 @@ nada.
 
 ![Categorias, liga e salvar as respostas](docs/images/tutorial/pt-br-step3.png)
 
-### 5. Pronto
+### 6. Pronto
 
 A pasta com os gráficos abre sozinha. Tudo da sessão está nela: os gráficos, o `summary.txt` para colar no chat da liga e
 o `race.json` com os dados. Todos os resultados ficam em **Documentos → ACC Race Stats**.

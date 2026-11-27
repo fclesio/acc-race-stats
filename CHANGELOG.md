@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Changed
 
 - `README.md` is in Portuguese, with a link to the English version in `README.en.md`.
+- The step-by-step guide shows where the FTP access is in the server panel.
 
 ## [0.1.1] - 2026-11-27
 

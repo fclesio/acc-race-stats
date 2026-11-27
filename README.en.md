@@ -35,11 +35,18 @@ Only the first time:
   On macOS 15 and later: **System Settings → Privacy & Security → Open Anyway**.
 - The program then downloads what it needs by itself, which can take a few minutes. There is nothing to install.
 
-### 4. Answer the questions
+### 4. Keep the server panel open
+
+The program asks for the **FTP** access of your server. Open the panel of your server host (here, G-Portal) on the
+**access data** page and keep it next to the program: you copy the IP, port, user name and password from there.
+
+![The G-Portal panel on the access data page, with the FTP block highlighted](docs/images/tutorial/en-gportal.png)
+
+### 5. Answer the questions
 
 Type the answer and press **Enter**; in the images, what you type is yellow and the hints are green. For menus, type
-only the number. The address, user and password of the FTP are in the panel of your game server host (G-Portal, for
-example). The password shows only asterisks.
+only the number. For the **FTP address**, type the IP and the port of the FTP block of the panel, with a colon between
+them (`IP:port`). The password shows only asterisks.
 
 ![Language and connection](docs/images/tutorial/en-step1.png)
 
@@ -51,7 +58,7 @@ Categories, league name, and whether to save the answers. Choose **1** to save: 
 
 ![Categories, league and saving the answers](docs/images/tutorial/en-step3.png)
 
-### 5. Done
+### 6. Done
 
 The folder with the charts opens by itself. Everything of the session is there: the charts, `summary.txt` to paste in the
 league chat, and `race.json` with the data. All results are in **Documents → ACC Race Stats**.

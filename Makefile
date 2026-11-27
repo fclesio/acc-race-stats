@@ -1,30 +1,32 @@
-# macOS and Linux. On Windows, make.bat does the same.
-export PATH := $(HOME)/.local/bin:$(PATH)
-ARGS ?=
+# Shortcuts for macOS and Linux; each one calls run.sh, which works without make too.
+# Works with GNU make (including 3.81, the one of macOS) and BSD make. On Windows, make.bat does the same.
+#   make ARGS='--league "My League"'
 
-.DEFAULT_GOAL := run
-.PHONY: run en pt-br demo test check setup
+SHELL = /bin/sh
+ARGS =
 
-run: setup  ## ask everything step by step
-	@uv run --quiet --no-dev acc-race-stats $(ARGS)
+.PHONY: run en pt-br demo test check shortcut help
 
-en: setup  ## questions and charts in English
-	@uv run --quiet --no-dev acc-race-stats --lang en $(ARGS)
+run:  ## ask everything step by step (Portuguese by default)
+	@sh ./run.sh $(ARGS)
 
-pt-br: setup  ## questions and charts in Portuguese
-	@uv run --quiet --no-dev acc-race-stats --lang pt-br $(ARGS)
+en:  ## questions and charts in English
+	@sh ./run.sh en $(ARGS)
 
-demo: setup  ## invented race weekend, no server needed
-	@uv run --quiet --no-dev acc-race-stats --demo --session all $(ARGS)
+pt-br:  ## questions and charts in Portuguese
+	@sh ./run.sh pt-br $(ARGS)
 
-test: setup
-	@uv run --quiet pytest
+demo:  ## invented race weekend, no server needed
+	@sh ./run.sh demo $(ARGS)
 
-check: setup
-	@uv run --quiet ruff check .
-	@uv run --quiet mypy
+test:  ## pytest
+	@sh ./run.sh test $(ARGS)
 
-setup:
-	@command -v uv >/dev/null 2>&1 || { \
-		echo "First run: installing what is needed, only once..."; \
-		curl -LsSf https://astral.sh/uv/install.sh | sh; }
+check:  ## ruff and mypy
+	@sh ./run.sh check
+
+shortcut:  ## Linux: add ACC Race Stats to the applications menu
+	@sh ./run.sh shortcut
+
+help:
+	@grep -E '^[a-z-]+:.*## ' Makefile | sed 's/:.*## /\t/'

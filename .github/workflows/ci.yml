@@ -27,9 +27,19 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: call make.bat --demo --no-open < nul
-      - name: Launcher on macOS and Linux
+      - name: Double-click launcher on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: call ACC-Race-Stats.bat --demo --no-open < nul
+      - name: Launchers on macOS and Linux
         if: runner.os != 'Windows'
-        run: make ARGS="--demo --no-open"
+        run: |
+          make ARGS="--demo --no-open"
+          sh ./run.sh demo --no-open < /dev/null
+          echo | ./ACC-Race-Stats.command --demo --no-open
+      - name: run.sh is POSIX sh
+        if: runner.os == 'Linux'
+        run: dash -n run.sh && dash -n ACC-Race-Stats.command
   package:
     runs-on: ubuntu-latest
     steps:

@@ -45,6 +45,15 @@ To release, the maintainer:
 
 The release workflow checks that the tag and the version match, runs the tests and publishes the packages on GitHub.
 
+## Tutorial images
+
+The step-by-step images of the READMEs come from a real run of the program against the test FTP server. When a question
+or a message changes, draw them again and look at them:
+
+```bash
+uv run python tools/build_tutorial.py
+```
+
 ## Logos
 
 `tools/build_logos.py` draws the logos from [Simple Icons](https://simpleicons.org) files. Do not add artwork from other

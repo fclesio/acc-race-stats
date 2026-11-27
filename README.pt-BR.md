@@ -2,14 +2,76 @@
 
 [English](README.md) · Português (Brasil)
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)](pyproject.toml)
-[![Licença: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
+**Gráficos de corrida para ligas de Assetto Corsa Competizione, direto do seu servidor.** Escolha um evento numa lista e
+receba até 16 gráficos e um resumo para o chat da liga. Windows, macOS e Linux, em português e inglês.
 
-**Gráficos de corrida para ligas de Assetto Corsa Competizione, direto do seu servidor.**
+## Passo a passo
 
-Conecte por FTP, escolha um evento numa lista e receba até 16 gráficos e um resumo para o chat da liga. Sem mods, sem
-telemetria, sem arquivos para copiar. Funciona no Windows, macOS e Linux, em português e inglês.
+Não precisa entender de computador: você clica, digita um número e aperta Enter.
+
+### 1. Baixe
+
+**[⬇ Baixar o ACC Race Stats (zip)](https://github.com/fclesio/acc-race-stats/archive/refs/heads/main.zip)**
+
+### 2. Descompacte
+
+- **Windows:** clique com o botão direito no arquivo baixado → **Extrair tudo…** → **Extrair**.
+- **macOS:** clique duas vezes no arquivo baixado (o Safari muitas vezes já descompacta sozinho).
+- **Linux:** clique com o botão direito no arquivo baixado → **Extrair aqui**.
+
+Abra sempre o programa da pasta nova, não de dentro do arquivo zip.
+
+### 3. Abra
+
+Na pasta nova, abra o arquivo do seu sistema. Uma janela com texto abre: é nela que o programa faz as perguntas.
+
+![A pasta descompactada: clique duas vezes em ACC-Race-Stats.bat no Windows ou em ACC-Race-Stats.command no macOS; no
+Linux, botão direito em run.sh](docs/images/tutorial/pt-br-folder.png)
+
+Só na primeira vez:
+
+- **Windows** pode perguntar se quer executar um arquivo da internet: clique em **Mais informações → Executar assim
+  mesmo**, ou em **Executar**.
+- **macOS** pode dizer que o arquivo é de um desenvolvedor não identificado: botão direito em `ACC-Race-Stats.command` →
+  **Abrir** → **Abrir**. No macOS 15 ou mais novo: **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo
+  Assim**.
+- Depois o programa baixa sozinho o que precisa, e isso pode levar alguns minutos. Não há nada para instalar.
+
+### 4. Responda as perguntas
+
+Digite a resposta e aperte **Enter**; nas imagens, o que você digita está em amarelo e as dicas em verde. Nos menus,
+digite só o número. Endereço, usuário e senha do FTP estão no painel da empresa do seu servidor (o G-Portal, por
+exemplo). A senha aparece só como asteriscos.
+
+![Idioma e conexão](docs/images/tutorial/pt-br-step1.png)
+
+Escolha o evento, do mais recente para o mais antigo, e o que desenhar:
+
+![Escolha do evento](docs/images/tutorial/pt-br-step2.png)
+
+Categorias, nome da liga e se quer salvar as respostas. Escolha **1** para salvar: da próxima vez ele quase não pergunta
+nada.
+
+![Categorias, liga e salvar as respostas](docs/images/tutorial/pt-br-step3.png)
+
+### 5. Pronto
+
+A pasta com os gráficos abre sozinha. Tudo da sessão está nela: os gráficos, o `summary.txt` para colar no chat da liga e
+o `race.json` com os dados. Todos os resultados ficam em **Documentos → ACC Race Stats**.
+
+![A pasta com os gráficos](docs/images/tutorial/pt-br-result.png)
+
+### Da próxima vez
+
+Abra o mesmo arquivo de novo. Com as respostas salvas, ele conecta sozinho e só pergunta qual evento desenhar:
+
+![Da próxima vez: só o evento e a sessão](docs/images/tutorial/pt-br-next-time.png)
+
+Para mudar as respostas salvas, abra o `acc-race-stats.toml` da pasta do programa em qualquer editor de texto, ou apague
+esse arquivo para responder tudo de novo. Deu algum problema? Veja [problemas comuns](docs/troubleshooting.md) (em
+inglês).
+
+## Os gráficos
 
 ![Posições volta a volta](docs/images/12-lap-by-lap.png)
 
@@ -18,90 +80,24 @@ telemetria, sem arquivos para copiar. Funciona no Windows, macOS e Linux, em por
 | ![Resultado](docs/images/01-result.png) | ![Diferença para o vencedor](docs/images/04-gap-to-winner.png) |
 | ![Paradas no box](docs/images/09-pit-stops.png) | ![Batalhas](docs/images/08-battles.png) |
 
-As imagens vêm da corrida inventada do modo demo. Veja [cada gráfico explicado](docs/charts.md) (em inglês).
+As imagens vêm de uma corrida inventada (`./run.sh demo`). Veja [cada gráfico explicado](docs/charts.md) (em inglês).
 
-## Começo rápido
+## Pelo terminal
 
-1. [Baixe este projeto](https://github.com/fclesio/acc-race-stats/archive/refs/heads/main.zip) e descompacte.
-2. Clique duas vezes no atalho do seu sistema. Uma janela de terminal abre e pergunta tudo passo a passo.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)](pyproject.toml)
+[![Licença: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
 
-| Sistema | Clique duas vezes | Ou, num terminal na pasta do projeto |
-|---|---|---|
-| Windows | `ACC-Race-Stats.bat` | `make` (Prompt de Comando) ou `.\make` (PowerShell) |
-| macOS | `ACC-Race-Stats.command` | `./run.sh` ou `make` |
-| Linux | veja abaixo | `./run.sh` ou `make` |
-
-A primeira vez baixa sozinha o que é preciso ([uv](https://docs.astral.sh/uv/), Python e as bibliotecas), só uma vez, e
-pode levar alguns minutos. Não é preciso instalar nem digitar nada: o `run.sh` só precisa de `sh` e `curl` (ou `wget`),
-então funciona sem `make` e em versões mais antigas do macOS.
-
-- **Windows:** se o Windows perguntar se quer executar um arquivo da internet, escolha **Executar** (ou **Mais
-  informações → Executar assim mesmo**).
-
-- **macOS:** na primeira vez, o macOS pode dizer que o arquivo é de um desenvolvedor não identificado. Clique com o botão
-  direito em `ACC-Race-Stats.command` e escolha **Abrir** (no macOS 15 ou mais novo: **Ajustes do Sistema →
-  Privacidade e Segurança → Abrir Mesmo Assim**). Nas próximas vezes, o clique duplo basta.
-- **Linux:** na primeira vez, clique com o botão direito em `run.sh` e escolha **Executar como um programa**. Depois
-  disso, o **ACC Race Stats** aparece no menu de aplicativos.
-- Abra o atalho da pasta descompactada, não de dentro do arquivo zip.
+Os arquivos de clique duplo chamam o `run.sh` (macOS, Linux) ou o `make.bat` (Windows). Eles só precisam de `sh` e `curl`
+(ou `wget`), ou do PowerShell no Windows: sem `make`, Python ou ferramentas de desenvolvedor. A primeira vez instala o
+[uv](https://docs.astral.sh/uv/), o Python e as bibliotecas, sem mexer no perfil do shell nem no `PATH`.
 
 | Comando | O que faz |
 |---|---|
-| `./run.sh` ou `make` | pergunta o idioma (português é o padrão) e depois todo o resto |
+| `./run.sh` ou `make` (Windows: `make` ou `.\make`) | pergunta o idioma (português é o padrão) e depois todo o resto |
 | `./run.sh pt-br` / `./run.sh en` | o mesmo, em português / inglês (`make pt-br`, `make en`) |
 | `./run.sh demo` | um fim de semana de corrida inventado, sem servidor (`make demo`) |
-
-No fim das perguntas, ele oferece salvar as respostas (servidor, senha, liga, categorias), e da próxima vez só pergunta
-qual evento desenhar. Veja [arquivo de configuração](#arquivo-de-configuração).
-
-## Como fica
-
-```text
-Idioma / Language
-  1  Português (Brasil)
-  2  English
-Número (aperte Enter para 1): 1
-
-1. Conexão (copie do painel do seu servidor, por exemplo o G-Portal)
-Endereço do FTP (IP ou IP:porta): 203.0.113.10:8821
-Usuário do FTP: meuusuario
-Senha do FTP: ********
-Conectando...
-Conectado.
-
-2. Escolha uma (a mais recente primeiro)
-   1  15/03/2026 21:40   Monza              26 carros   Corrida + Classificação + Treino
-   2  08/03/2026 21:34   Spa-Francorchamps  18 carros   Corrida + Classificação
-   3  07/03/2026 20:10   Monza              12 carros   Treino
-Digite o número (aperte Enter para 1): 1
-
-O que você quer ver?
-  1  Corrida
-  2  Classificação
-  3  Treino
-  4  Todas
-Número (aperte Enter para 1): 1
-
-3. Categorias
-Categorias salvas no arquivo: PRO (10), SILVER (9), AM (7)
-
-Sua liga usa categorias?
-  1  Sim
-  2  Não, uma cor por piloto
-Número (aperte Enter para 1): 1
-
-4. Gráficos
-Nome da liga em destaque (vazio = nenhum): Minha Liga
-```
-
-A pasta com os resultados abre no final. Eles ficam em `ACC Race Stats`, na sua pasta Documentos, com uma pasta por
-sessão. Tudo de uma sessão fica nessa mesma pasta:
-
-| Arquivo | Conteúdo |
-|---|---|
-| `01-result.png` … `16-pace-distribution.png` | os gráficos |
-| `summary.txt` | texto para colar no chat da liga |
-| `race.json` | a análise em dados, com as batalhas ([formato](docs/race-json.md)) |
+| `./run.sh --league "Minha Liga" …` | qualquer [opção](docs/usage.md) (`make ARGS='…'`) |
 
 ## Arquivo de configuração
 

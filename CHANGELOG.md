@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The launchers say when they are opened inside the zip file, and when the first run is still preparing.
 - `battles` in `race.json`.
 - `README.pt-BR.md`, the README in Brazilian Portuguese.
+- A step-by-step guide with images at the top of both READMEs, drawn from a real run by `tools/build_tutorial.py`.
 
 ### Changed
 
@@ -23,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The charts are saved in the session folder, next to `summary.txt` and `race.json`, not in a `charts` folder.
 - The Makefile calls `run.sh` and works with GNU make 3.81 (older macOS) and BSD make.
 - Battles leave out the laps around the stops of either driver, as the chart already did.
+- The guided run hides the connection, categories and charts headers when the settings file already answers them.
 
 ### Fixed
 

@@ -2,14 +2,72 @@
 
 English · [Português (Brasil)](README.pt-BR.md)
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
+**Race charts for Assetto Corsa Competizione leagues, straight from your game server.** Pick an event from a list and
+get up to 16 charts and a summary for your league chat. Windows, macOS and Linux, in Portuguese and English.
 
-**Race charts for Assetto Corsa Competizione leagues, straight from your game server.**
+## Step by step
 
-Connect over FTP, pick an event from a list, and get up to 16 charts and a summary for your league chat. No game mods,
-no telemetry, no files to move around. Works on Windows, macOS and Linux, in English and Brazilian Portuguese.
+No technical knowledge needed: you click, type a number and press Enter.
+
+### 1. Download
+
+**[⬇ Download ACC Race Stats (zip)](https://github.com/fclesio/acc-race-stats/archive/refs/heads/main.zip)**
+
+### 2. Unzip
+
+- **Windows:** right-click the downloaded file → **Extract All…** → **Extract**.
+- **macOS:** double-click the downloaded file (Safari often unzips it by itself).
+- **Linux:** right-click the downloaded file → **Extract Here**.
+
+Always open the program from the new folder, not from inside the zip file.
+
+### 3. Start it
+
+In the new folder, open the file of your system. A window with text opens: that is where the program asks its questions.
+
+![The unzipped folder: double-click ACC-Race-Stats.bat on Windows or ACC-Race-Stats.command on macOS; on Linux,
+right-click run.sh](docs/images/tutorial/en-folder.png)
+
+Only the first time:
+
+- **Windows** may ask whether to run a file from the internet: click **More info → Run anyway**, or **Run**.
+- **macOS** may say the file is from an unidentified developer: right-click `ACC-Race-Stats.command` → **Open** → **Open**.
+  On macOS 15 and later: **System Settings → Privacy & Security → Open Anyway**.
+- The program then downloads what it needs by itself, which can take a few minutes. There is nothing to install.
+
+### 4. Answer the questions
+
+Type the answer and press **Enter**; in the images, what you type is yellow and the hints are green. For menus, type
+only the number. The address, user and password of the FTP are in the panel of your game server host (G-Portal, for
+example). The password shows only asterisks.
+
+![Language and connection](docs/images/tutorial/en-step1.png)
+
+Pick the event, newest first, and what to draw:
+
+![Choosing the event](docs/images/tutorial/en-step2.png)
+
+Categories, league name, and whether to save the answers. Choose **1** to save: next time it asks almost nothing.
+
+![Categories, league and saving the answers](docs/images/tutorial/en-step3.png)
+
+### 5. Done
+
+The folder with the charts opens by itself. Everything of the session is there: the charts, `summary.txt` to paste in the
+league chat, and `race.json` with the data. All results are in **Documents → ACC Race Stats**.
+
+![The folder with the charts](docs/images/tutorial/en-result.png)
+
+### Next time
+
+Open the same file again. With the answers saved, it connects by itself and only asks which event to draw:
+
+![Next time: only the event and the session](docs/images/tutorial/en-next-time.png)
+
+To change the saved answers, open `acc-race-stats.toml` in the program folder with any text editor, or delete it to be
+asked everything again. Something went wrong? See [troubleshooting](docs/troubleshooting.md).
+
+## The charts
 
 ![Lap by lap positions](docs/images/12-lap-by-lap.png)
 
@@ -18,89 +76,24 @@ no telemetry, no files to move around. Works on Windows, macOS and Linux, in Eng
 | ![Result](docs/images/01-result.png) | ![Gap to the winner](docs/images/04-gap-to-winner.png) |
 | ![Pit stops](docs/images/09-pit-stops.png) | ![Battles](docs/images/08-battles.png) |
 
-All images come from the invented race of `make demo`. See [every chart explained](docs/charts.md).
+All images come from an invented race (`./run.sh demo`). See [every chart explained](docs/charts.md).
 
-## Quick start
+## From a terminal
 
-1. [Download this project](https://github.com/fclesio/acc-race-stats/archive/refs/heads/main.zip) and unzip it.
-2. Double-click the launcher of your system. A terminal window opens and asks everything step by step.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196)](https://www.conventionalcommits.org/en/v1.0.0/)
 
-| System | Double-click | Or, in a terminal in the project folder |
-|---|---|---|
-| Windows | `ACC-Race-Stats.bat` | `make` (Command Prompt) or `.\make` (PowerShell) |
-| macOS | `ACC-Race-Stats.command` | `./run.sh` or `make` |
-| Linux | see below | `./run.sh` or `make` |
-
-The first run downloads what it needs ([uv](https://docs.astral.sh/uv/), Python and the libraries) by itself, only
-once, and can take a few minutes. There is nothing to install or type by hand: `run.sh` needs only `sh` and `curl`
-(or `wget`), so it also works without `make` and on older macOS versions.
-
-- **Windows:** if Windows asks whether to run a file from the internet, choose **Run** (or **More info → Run anyway**).
-
-- **macOS:** the first time, macOS may say the file is from an unidentified developer. Right-click
-  `ACC-Race-Stats.command` and choose **Open** (on macOS 15 and later: **System Settings → Privacy & Security → Open
-  Anyway**). Next time a double-click is enough.
-- **Linux:** the first time, right-click `run.sh` and choose **Run as a Program**. After that, **ACC Race Stats** is in
-  the applications menu.
-- Open the launcher from the unzipped folder, not from inside the zip file.
+The double-click files call `run.sh` (macOS, Linux) or `make.bat` (Windows). They need only `sh` and `curl` (or `wget`),
+or PowerShell on Windows: no `make`, Python or developer tools. The first run installs
+[uv](https://docs.astral.sh/uv/), Python and the libraries, without changing the shell profile or the `PATH`.
 
 | Command | What it does |
 |---|---|
-| `./run.sh` or `make` | asks the language (Portuguese by default), then everything else |
+| `./run.sh` or `make` (Windows: `make` or `.\make`) | asks the language (Portuguese by default), then everything else |
 | `./run.sh en` / `./run.sh pt-br` | same, in English / Portuguese (`make en`, `make pt-br`) |
 | `./run.sh demo` | an invented race weekend, no server needed (`make demo`) |
-
-At the end of the questions it offers to save the answers (server, password, league, categories), so the next run only
-asks which event to draw. See [settings file](#settings-file).
-
-## How it looks
-
-```text
-Idioma / Language
-  1  Português (Brasil)
-  2  English
-Número (aperte Enter para 1): 2
-
-1. Connection (copy it from your game server panel, for example G-Portal)
-FTP address (IP, or IP:port): 203.0.113.10:8821
-FTP user: myuser
-FTP password: ********
-Connecting...
-Connected.
-
-2. Pick one (newest first)
-   1  15/03/2026 21:40   Monza              26 cars   Race + Qualifying + Practice
-   2  08/03/2026 21:34   Spa-Francorchamps  18 cars   Race + Qualifying
-   3  07/03/2026 20:10   Monza              12 cars   Practice
-Type the number (press Enter for 1): 1
-
-What do you want to see?
-  1  Race
-  2  Qualifying
-  3  Practice
-  4  All of them
-Number (press Enter for 1): 1
-
-3. Categories
-Categories saved in the file: PRO (10), SILVER (9), AM (7)
-
-Does your league use categories?
-  1  Yes
-  2  No, one color per driver
-Number (press Enter for 1): 1
-
-4. Charts
-League name to highlight (empty = none): My League
-```
-
-The results open at the end. They are in `ACC Race Stats`, in your Documents folder, with one folder per session.
-Everything of a session is in that one folder:
-
-| File | Content |
-|---|---|
-| `01-result.png` … `16-pace-distribution.png` | the charts |
-| `summary.txt` | text to paste in the league chat |
-| `race.json` | the analysis as data, battles included ([format](docs/race-json.md)) |
+| `./run.sh --league "My League" …` | any [option](docs/usage.md) (`make ARGS='…'`) |
 
 ## Settings file
 

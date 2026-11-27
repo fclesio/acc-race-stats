@@ -1,0 +1,25 @@
+# ACC Race Stats settings, for reference. The program writes acc-race-stats.toml by itself at the end of the
+# first run; this file only lists every setting. To write one by hand, copy it to acc-race-stats.toml.
+# Every line is optional: what is missing is asked, and options typed on the command line win.
+# acc-race-stats.toml holds a password: do not share it. It is in .gitignore and the program keeps it private.
+
+[server]
+# from the panel of your game server host, for example G-Portal
+address = "203.0.113.10:8821"   # IP, IP:port or ftp://user@IP:port
+user = "myuser"
+password = "my-ftp-password"    # leave it out to be asked every time
+# port = 8821                   # when it is not in the address
+
+[report]
+language = "pt-br"              # "pt-br" or "en"
+league = "My League"            # highlighted on every chart
+# event = "Round 3"             # in the titles
+divisions = "pro"               # none, game, pro, metal, fia or numbers
+# color_by = "auto"             # auto, class or driver
+class_map = { SILVER = "PRO-AM" }
+# class_color = { PRO = "#ffffff" }
+# roster = "examples/roster.csv"  # relative to this file
+# grid = "grid.csv"
+# output = "~/Documents/ACC Race Stats"
+# min_cars = 2
+# open_folder = true

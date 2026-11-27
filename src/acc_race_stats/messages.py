@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-_language = "en"
+DEFAULT_LANGUAGE = "en"
+_language = DEFAULT_LANGUAGE
 
 
 def set_language(language: str) -> None:
@@ -99,4 +100,13 @@ PORTUGUESE = {
     "{name}: lap 1 in the file was wrong and was rebuilt": "{name}: a volta 1 estava errada no arquivo e foi reconstruída",
     "No driver completed a lap in this session": "Nenhum piloto completou uma volta nesta sessão",
     "grid: not found in the race: {names}": "grid: não encontrados na corrida: {names}",
+    "Settings from {path}": "Configurações de {path}",
+    "Save these answers (server, password, league, categories) so they are not asked next time?": "Salvar estas respostas (servidor, senha, liga, categorias) para não perguntar da próxima vez?",
+    "No": "Não",
+    "Saved in {path}. To change the answers, edit or delete that file.": "Salvo em {path}. Para mudar as respostas, edite ou apague esse arquivo.",
+    "Config file {path} not found": "Arquivo de configuração {path} não encontrado",
+    "Cannot read {path}: {error}": "Não consigo ler {path}: {error}",
+    "{path}: unknown setting {names}": "{path}: configuração desconhecida {names}",
+    "{path}: {key} has the wrong type": "{path}: {key} tem o tipo errado",
+    "{path}: {key} must be one of {options}": "{path}: {key} deve ser um destes: {options}",
 }

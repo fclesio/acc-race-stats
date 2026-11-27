@@ -15,12 +15,15 @@ from itertools import islice
 from pathlib import Path
 
 from . import __version__, demo
+from .config import Config, ConfigError, make_private, update_password
+from .config import load as load_config
+from .config import save as save_config
 from .divisions import PRESETS, found_categories, preset_map
 from .events import Event, find_events, useful
 from .folders import default_output
 from .gamedata import TRACKS, track_name
 from .i18n import translator
-from .messages import set_language, tr
+from .messages import DEFAULT_LANGUAGE, set_language, tr
 from .palette import apply_colors
 from .race import Race
 from .report import write
@@ -129,11 +132,11 @@ def choose(title: str, options: list[str], default: int = 1) -> int:
         print(tr("  Type a number from 1 to {last}", last=len(options)))
 
 
-def ask_connection() -> Server:
+def ask_connection(preset: Address | None = None) -> Server:
     print(tr("\n1. Connection (copy it from your game server panel, for example G-Portal)"))
-    saved = load_server()
-    address: Address | None = None
-    if saved:
+    saved = preset or load_server()
+    address: Address | None = preset
+    if saved and not preset:
         same = tr("{server}, user {user}", server=f"{saved.host}:{saved.port}", user=saved.user)
         if choose(tr("Which server?"), [tr("The same as last time ({same})", same=same), tr("Another one")]) == 0:
             address = saved
@@ -143,12 +146,13 @@ def ask_connection() -> Server:
             if address.port == 21:
                 address.port = ask_until(tr("FTP port"), _port, "21")
         address.user = address.user or ask(tr("FTP user"))
-        address.password = address.password or ask_password()
+        address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password()
         print(tr("Connecting..."))
         try:
             server = Server(address)
         except LoginError as error:
             print(f"  {error}\n")
+            os.environ.pop("ACC_FTP_PASSWORD", None)
             address.password = ""
             if address is not saved:
                 address.user = ""
@@ -225,7 +229,7 @@ def with_companions(server: Server, anchor: Session) -> list[Session]:
 def generate(sessions: list[Session], pool: list[Session], a: argparse.Namespace) -> list[Path]:
     roster = load_roster(a.roster) if a.roster else None
     grid = load_grid(a.grid) if a.grid else None
-    t = translator(a.lang or "en")
+    t = translator(a.lang or DEFAULT_LANGUAGE)
     folders = []
     # every session of the event uses the categories of its main one
     pool_main = sessions[-1] if sessions else None
@@ -343,7 +347,7 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
             tr(
                 "  {name} -> {new} ({count} cars)",
                 name=name,
-                new=translator(a.lang or "en")("class_name", name=names.get(name, name)),
+                new=translator(a.lang or DEFAULT_LANGUAGE)("class_name", name=names.get(name, name)),
                 count=count,
             )
         )
@@ -352,12 +356,29 @@ def ask_divisions(a: argparse.Namespace, session: Session) -> None:
         a.color_by = "class"
 
 
-def guided(a: argparse.Namespace) -> list[Path]:
+def offer_to_save(a: argparse.Namespace, address: Address) -> None:
+    """Non-technical users never edit a file: the program writes it for them."""
+    question = tr("Save these answers (server, password, league, categories) so they are not asked next time?")
+    if choose(question, [tr("Yes"), tr("No")]) == 1:
+        return
+    report = {"language": a.lang, "league": a.league, "divisions": a.divisions}
+    if a.class_map:
+        report["class_map"] = parse_pairs(a.class_map)
+    path = save_config(address, report)
+    if path:
+        print(tr("Saved in {path}. To change the answers, edit or delete that file.", path=path))
+
+
+def guided(a: argparse.Namespace, config: Config | None = None) -> list[Path]:
+    config = config or Config()
     print("ACC Race Stats\n" + "=" * 14)
     if not a.lang:
         a.lang = ["en", "pt-br"][choose("Language / Idioma", ["English", "Português (Brasil)"])]
         set_language(a.lang)
-    server = ask_connection()
+    typed = config.server.password if config.server else ""
+    server = ask_connection(config.server)
+    if config.path and config.server and typed and server.address.password != typed:
+        update_password(config.path, server.address.password)
     try:
         print(tr("\n2. Pick one (newest first)"))
         names = server.find_results()
@@ -377,13 +398,18 @@ def guided(a: argparse.Namespace) -> list[Path]:
     ask_divisions(a, sessions[-1])
     print(tr("\n4. Charts"))
     a.league = a.league or ask(tr("League name to highlight (empty = none)"))
+    if not config.path:
+        offer_to_save(a, server.address)
     return generate(sessions, event.sessions, a)
 
 
-def direct(a: argparse.Namespace) -> list[Path]:
+def direct(a: argparse.Namespace, preset: Address | None = None) -> list[Path]:
     track, day = parse_track(a.track), parse_day(a.date)
-    if a.ftp:
-        address = parse_address(a.ftp)
+    if a.ftp or (preset and not (a.path or a.demo)):
+        address = parse_address(a.ftp) if a.ftp else preset
+        assert address is not None
+        if a.ftp and preset and (address.host, address.port) == (preset.host, preset.port):
+            address.user, address.password = address.user or preset.user, address.password or preset.password
         address.port = a.port or address.port
         address.user = a.user or address.user or ask(tr("FTP user"))
         address.password = address.password or os.environ.get("ACC_FTP_PASSWORD") or ask_password()
@@ -417,7 +443,8 @@ def direct(a: argparse.Namespace) -> list[Path]:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="acc-race-stats", description="Charts from Assetto Corsa Competizione server results. "
-        "Run it without a path, --ftp or --demo and it asks everything step by step.",
+        "Run it without a path, --ftp or --demo and it asks everything step by step. "
+        "Answers can be saved in acc-race-stats.toml (see acc-race-stats.example.toml).",
     )  # fmt: skip
     p.add_argument("path", nargs="?", type=Path, help="result file or folder with result files")
     p.add_argument("--ftp", metavar="ADDRESS", help="server address: IP, IP:port or ftp://user@IP:port")
@@ -446,6 +473,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--event", default="", help="event name in the titles")
     p.add_argument("--output", type=Path, help="output folder (default: ACC Race Stats in your Documents)")
     p.add_argument("--no-open", action="store_true", help="do not open the folder at the end")
+    p.add_argument(
+        "--config", type=Path, help="TOML file with the answers (default: ./acc-race-stats.toml, if it exists)"
+    )
     p.add_argument("--version", action="version", version=__version__)
     return p
 
@@ -456,15 +486,31 @@ def main(argv: list[str] | None = None) -> None:
             stream.reconfigure(errors="replace")
     parser = build_parser()
     a = parser.parse_args(argv)
-    set_language(a.lang or "en")
+    set_language(a.lang or DEFAULT_LANGUAGE)
+    try:
+        config = load_config(a.config)
+    except ConfigError as error:
+        sys.exit(tr("Error: {error}", error=error))
+    if config.defaults:
+        parser.set_defaults(**config.defaults)
+        a = parser.parse_args(argv)
+        set_language(a.lang or DEFAULT_LANGUAGE)
+    if config.path:
+        print(tr("Settings from {path}", path=config.path))
+        if config.server and config.server.password:
+            make_private(config.path)
     if sum(map(bool, (a.path, a.ftp, a.demo))) > 1:
         parser.error("choose only one of: path, --ftp, --demo")
     interactive = not (a.path or a.ftp or a.demo)
-    if interactive and a.list:
+    if interactive and a.list and not config.server:
         parser.error("--list needs a path or --ftp")
     try:
         a.output = a.output or default_output()
-        folders = guided(a) if interactive else direct(a)
+        if interactive and not a.list:
+            folders = guided(a, config)
+        else:
+            a.lang = a.lang or DEFAULT_LANGUAGE
+            folders = direct(a, config.server)
     except (UserError, ServerError, ResultError, RosterError) as error:
         sys.exit(tr("Error: {error}", error=error))
     except (KeyboardInterrupt, EOFError):

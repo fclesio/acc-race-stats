@@ -7,3 +7,4 @@ dist/
 reports/
 *.env
 .DS_Store
+acc-race-stats.toml

@@ -32,7 +32,7 @@ def test_every_field_is_given():
 
 def test_nothing_is_printed_without_translation():
     allowed = {"ACC Race Stats\n", "Language / Idioma"}
-    for name in ("print", "ask", "choose", "ask_until", "ServerError", "UserError", "ResultError"):
+    for name in ("print", "ask", "choose", "ask_until", "ServerError", "UserError", "ResultError", "ConfigError"):
         for where, node in calls(name):
             for argument in node.args:
                 parts = argument.values if isinstance(argument, ast.JoinedStr) else [argument]

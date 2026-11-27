@@ -90,6 +90,9 @@ def ftp():
 def settings(tmp_path_factory, monkeypatch):
     set_language("en")
     folder = tmp_path_factory.mktemp("settings")
+    monkeypatch.chdir(folder)  # no acc-race-stats.toml of the developer
+    monkeypatch.delenv("ACC_RACE_STATS_CONFIG", raising=False)
+    monkeypatch.delenv("ACC_FTP_PASSWORD", raising=False)
     monkeypatch.setenv("APPDATA", str(folder))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(folder))
     monkeypatch.setattr(server_module, "cache_folder", lambda: folder / "cache")

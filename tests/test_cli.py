@@ -13,7 +13,9 @@ from acc_race_stats.terminal import collect
 
 
 def test_guided_flow(ftp, fast, tmp_path, monkeypatch, capsys):
-    answers = iter(["2", "not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League"])
+    answers = iter(
+        ["2", "not valid:port", f"127.0.0.1:{ftp.port}", "me", "me", "m", "1", "4", "1", "1", "My League", "2"]
+    )
     passwords = iter(["wrong", "secret"])
     monkeypatch.setattr("builtins.input", lambda question: next(answers))
     monkeypatch.setattr(cli, "ask_password", lambda: next(passwords))
@@ -88,7 +90,7 @@ def test_older_events_are_one_key_away(monkeypatch, capsys):
 
 def test_last_server_is_remembered_without_the_password(ftp, fast, tmp_path, monkeypatch, settings):
     monkeypatch.setattr(cli, "ask_password", lambda: "secret")
-    for answers in (["", f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", ""], ["", "", "", "", "2", ""]):
+    for answers in (["", f"127.0.0.1:{ftp.port}", "me", "1", "1", "", "", "", "2"], ["", "", "", "", "2", "", "2"]):
         replies = iter(answers)
         monkeypatch.setattr("builtins.input", lambda question, replies=replies: next(replies))
         cli.main(["--output", str(tmp_path)])
@@ -140,7 +142,7 @@ def test_default_language_is_english(fast, tmp_path):
 
 def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("127.0.0.1", ftp.port, "me"))
-    passwords, replies = iter(["wrong", "secret"]), iter(["1", "1", "1", "1", "2", ""])
+    passwords, replies = iter(["wrong", "secret"]), iter(["1", "1", "1", "1", "2", "", "2"])
     monkeypatch.setattr(cli, "ask_password", lambda: next(passwords))
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
@@ -149,7 +151,7 @@ def test_wrong_password_on_the_remembered_server_only_asks_the_password(ftp, fas
 
 def test_another_server(ftp, fast, tmp_path, monkeypatch):
     save_server(Address("192.0.2.1", 21, "old"))
-    replies = iter(["1", "2", f"127.0.0.1:{ftp.port}", "me", "1", "1", "2", ""])
+    replies = iter(["1", "2", f"127.0.0.1:{ftp.port}", "me", "1", "1", "2", "", "2"])
     monkeypatch.setattr(cli, "ask_password", lambda: "secret")
     monkeypatch.setattr("builtins.input", lambda question: next(replies))
     cli.main(["--output", str(tmp_path)])
